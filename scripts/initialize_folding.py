@@ -100,7 +100,7 @@ if __name__ == "__main__":
             left_arm_move_goal = MoveGoal()
             left_arm_move_goal.arm = "left"
             left_arm_move_goal.use_pose_target = False
-            left_arm_move_goal.joint_target = joint_target["left"]
+            left_arm_move_goal.joint_target = joint_state["left"]
 
             success = monitor_action_goal(experiment_server, move_client, left_arm_move_goal, action_name = move_action_name)
 
