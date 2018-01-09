@@ -1,6 +1,6 @@
 move_action_name: /yumi/move
 folding_action_name: /folding_controller/folding_controller
 right_arm:
-  joint_state: [0.82238, -1.85255, -1.52026, 0.15969, -0.52074, 1.38925, 0.56672]
+  joint_state: [1.37982, -1.41619, -1.28724, -0.02804, -0.36039, 1.19610, 0.99614]
 left_arm:
-  joint_state: [-1.26914, -0.64115, 1.32813, 1.00769, 1.91455, 0.59335,  -3.03794]
+  joint_state: [-1.62663, -1.97219, 0.54099, 0.80305, 1.67094, 1.81453,  -2.13310]
