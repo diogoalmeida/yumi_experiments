@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>yumi_experiments</name>
+  <version>0.1.0</version>
+  <description>Contains scripts and launch files to initialize experiments with the yumi.</description>
+  <maintainer email="diogoa@kth.se">diogo</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>rospy</depend>
+  <depend>actionlib</depend>
+  <depend>cmake_modules</depend>
+  <depend>actionlib_msgs</depend>
+  <depend>yumi_interface</depend>
+  <depend>folding_assembly_controller</depend>
+</package>
