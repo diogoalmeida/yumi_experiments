@@ -12,6 +12,16 @@ find_package(
 
 link_directories(${catkin_LIBRARY_DIRS})
 
+add_action_files(
+	DIRECTORY action
+	FILES RunFolding.action
+)
+
+generate_messages(
+  DEPENDENCIES
+	actionlib_msgs
+)
+
 catkin_package(
   CATKIN_DEPENDS rospy actionlib actionlib_msgs folding_assembly_controller yumi_interface
   INCLUDE_DIRS

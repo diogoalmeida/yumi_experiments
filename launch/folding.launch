@@ -1,0 +1,8 @@
+<launch>
+  <include file="$(find folding_assembly_controller)/launch/controller.launch"/>
+  <include file="$(find yumi_interface)/launch/servers.launch"/>
+
+  <node name="folding_initialization" type="initialize_folding.py" pkg="yumi_experiments" output="screen">
+    <rosparam command="load" file="$(find yumi_experiments)/config/folding.yaml"/>
+  </node>
+</launch>
