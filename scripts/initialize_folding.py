@@ -4,6 +4,7 @@ import sys
 from yumi_interface.msg import MoveAction, MoveGoal
 from yumi_experiments.msg import RunFoldingAction
 from folding_assembly_controller.msg import FoldingControllerAction, FoldingControllerGoal
+from std_msgs.msg import Bool
 import actionlib
 
 
@@ -70,6 +71,7 @@ if __name__ == "__main__":
 
     move_client = actionlib.SimpleActionClient(move_action_name, MoveAction)
     folding_client = actionlib.SimpleActionClient(folding_action_name, FoldingControllerAction)
+    stop_folding_pub = rospy.Publisher("/folding/disable", Bool)
 
     rospy.loginfo("Waiting for move action server...")
     move_client.wait_for_server()
@@ -77,14 +79,19 @@ if __name__ == "__main__":
     folding_client.wait_for_server()
     rospy.loginfo("Waiting for action request...")
     experiment_server = actionlib.SimpleActionServer("/folding/initialize", RunFoldingAction)
+    stop_msg = Bool()
 
     while not rospy.is_shutdown():
+        stop_msg.data = False
+        stop_folding_pub.publish(stop_msg)
         while not experiment_server.is_new_goal_available():  # Wait for goal availability
             rospy.loginfo_throttle(60, "Initialization server waiting for goal...")
             rospy.sleep(0.5)
 
         goal = experiment_server.accept_new_goal()
         rospy.loginfo("Initializing folding experiment...")
+        stop_msg.data = True
+        stop_folding_pub.publish(stop_msg)
 
         while experiment_server.is_active():
             right_arm_move_goal = MoveGoal()
