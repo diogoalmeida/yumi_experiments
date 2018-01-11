@@ -84,10 +84,13 @@ if __name__ == "__main__":
     while not rospy.is_shutdown():
         stop_msg.data = False
         stop_folding_pub.publish(stop_msg)
-        while not experiment_server.is_new_goal_available():  # Wait for goal availability
+        while not experiment_server.is_new_goal_available() and not rospy.is_shutdown():  # Wait for goal availability
             rospy.loginfo_throttle(60, "Initialization server waiting for goal...")
             rospy.sleep(0.5)
 
+        if rospy.is_shutdown():
+            break
+            
         goal = experiment_server.accept_new_goal()
         rospy.loginfo("Initializing folding experiment...")
         stop_msg.data = True

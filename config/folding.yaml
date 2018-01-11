@@ -3,4 +3,4 @@ folding_action_name: /folding_controller/folding_controller
 right_arm:
   joint_state: [1.37982, -1.41619, -1.28724, -0.02804, -0.36039, 1.19610, 0.99614]
 left_arm:
-  joint_state: [-1.62663, -1.97219, 0.54099, 0.80305, 1.67094, 1.81453,  -2.13310]
+  joint_state: [-1.55093, -1.68061, 0.36581, 0.81071, 1.50316, 1.81734,  -2.40414]
