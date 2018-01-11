@@ -5,6 +5,7 @@ find_package(
   catkin REQUIRED COMPONENTS
   rospy
   actionlib
+  geometry_msgs
   actionlib_msgs
   yumi_interface
   generic_control_toolbox
@@ -22,10 +23,11 @@ add_action_files(
 generate_messages(
   DEPENDENCIES
 	actionlib_msgs
+  geometry_msgs
 )
 
 catkin_package(
-  CATKIN_DEPENDS rospy actionlib actionlib_msgs folding_assembly_controller yumi_interface generic_control_toolbox
+  CATKIN_DEPENDS rospy actionlib actionlib_msgs folding_assembly_controller yumi_interface generic_control_toolbox geometry_msgs
   INCLUDE_DIRS include
   LIBRARIES
 )

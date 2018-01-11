@@ -1,0 +1,12 @@
+action_name: approach
+kinematic_chain_base_link: yumi_base_link
+approach_arm:
+  kdl_eef_frame: yumi_link_7_l
+  gripping_frame: l_gripping_point
+  has_ft_sensor: true
+  sensor_frame: optodaq_l_sensor_link
+  sensor_topic: /yumi/optodaq_l
+
+kdl_manager:
+  eps: 0.001
+  max_tf_attempts: 10

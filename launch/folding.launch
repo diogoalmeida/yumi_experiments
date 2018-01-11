@@ -1,8 +1,27 @@
 <launch>
-  <include file="$(find folding_assembly_controller)/launch/controller.launch"/>
+  <arg name="debug" default="false"/>
+
+  <include file="$(find folding_assembly_controller)/launch/controller.launch">
+    <arg name="debug" value="$(arg debug)" />
+  </include>
   <include file="$(find yumi_interface)/launch/servers.launch"/>
 
   <node name="folding_initialization" type="initialize_folding.py" pkg="yumi_experiments" output="screen">
     <rosparam command="load" file="$(find yumi_experiments)/config/folding.yaml"/>
   </node>
+
+  <group unless="$(arg debug)">
+    <node name="approach_controller" type="approach_action_node" pkg="yumi_experiments" output="screen">
+      <rosparam command="load" file="$(find yumi_experiments)/config/approach.yaml"/>
+      <remap from="joint_states" to="yumi/joint_states"/>
+    </node>
+  </group>
+
+  <group if="$(arg debug)">
+    <env name="ROSCONSOLE_CONFIG_FILE" value="$(find yumi_experiments)/config/logger.config"/>
+    <node name="approach_controller" type="approach_action_node" pkg="yumi_experiments" output="screen" launch-prefix="xterm -e gdb -ex run --args">
+      <rosparam command="load" file="$(find yumi_experiments)/config/approach.yaml"/>
+      <remap from="joint_states" to="yumi/joint_states"/>
+    </node>
+  </group>
 </launch>

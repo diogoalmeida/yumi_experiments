@@ -23,11 +23,16 @@ namespace yumi_experiments
   private:
     sensor_msgs::JointState controlAlgorithm(const sensor_msgs::JointState &current_state, const ros::Duration &dt);
     bool parseGoal(boost::shared_ptr<const ApproachControllerGoal> goal);
+    bool init();
     void resetController();
 
+    ros::NodeHandle nh_;
+    std::string approach_arm_eef_, gripping_frame_name_;
     std::shared_ptr<generic_control_toolbox::KDLManager> kdl_manager_;
+    KDL::Twist desired_approach_twist_;
+    KDL::Frame eef_to_twist_frame_;
     generic_control_toolbox::WrenchManager wrench_manager_;
-
+    double max_contact_force_;
   };
 }
 #endif
