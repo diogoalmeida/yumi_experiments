@@ -89,6 +89,8 @@ namespace yumi_experiments
 
     if (wrench.block<3,1>(0,0).norm() >= max_contact_force_)
     {
+      KDL::JntArray desired_q_dot(7);
+      kdl_manager_->getJointState(approach_arm_eef_, desired_q_dot.data, ret);
       action_server_->setSucceeded();
       return ret;
     }

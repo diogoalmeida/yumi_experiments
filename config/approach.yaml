@@ -5,7 +5,7 @@ approach_arm:
   gripping_frame: l_gripping_point
   has_ft_sensor: true
   sensor_frame: optodaq_l_sensor_link
-  sensor_topic: /yumi/optodaq_l
+  sensor_topic: /yumi/optodaq_l_compensated
 
 kdl_manager:
   eps: 0.001
