@@ -1,5 +1,11 @@
-move_action_name: /yumi/move
-folding_action_name: /folding_controller/fold
+move:
+  action_name: /yumi/move
+folding:
+  action_name: /folding_controller/fold
+approach:
+  action_name: /approach_controller/approach
+  approach_frame: l_gripping_point
+ft_reset_services: [/yumi_left_arm_gravity_comp/calibrate_bias, /yumi_right_arm_gravity_comp/calibrate_bias]
 right_arm:
   joint_state: [1.37982, -1.41619, -1.28724, -0.02804, -0.36039, 1.19610, 0.99614]
 left_arm:

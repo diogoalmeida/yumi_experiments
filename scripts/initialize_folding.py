@@ -2,9 +2,10 @@
 import rospy
 import sys
 from yumi_interface.msg import MoveAction, MoveGoal
-from yumi_experiments.msg import RunFoldingAction
+from yumi_experiments.msg import RunFoldingAction, ApproachControllerAction, ApproachControllerGoal
 from folding_assembly_controller.msg import FoldingControllerAction, FoldingControllerGoal
 from std_msgs.msg import Bool
+from std_srvs.srv import Empty
 import actionlib
 
 
@@ -57,8 +58,12 @@ if __name__ == "__main__":
        and call the controller."""
 
     rospy.init_node("initialize_folding")
-    move_action_name = rospy.get_param("~move_action_name", "/yumi/move")
-    folding_action_name = rospy.get_param("~folding_action_name", "/yumi/folding")
+    move_action_name = rospy.get_param("~move/action_name", "/yumi/move")
+    folding_action_name = rospy.get_param("~folding/action_name", "/yumi/folding")
+    approach_action_name = rospy.get_param("~approach/action_name", "/yumi/approach")
+    approach_frame = rospy.get_param("~approach/approach_frame", "l_gripping_point")
+
+    force_torque_reset_services = rospy.get_param("~ft_reset_services", [])
 
     joint_state = {}
 
@@ -71,12 +76,15 @@ if __name__ == "__main__":
 
     move_client = actionlib.SimpleActionClient(move_action_name, MoveAction)
     folding_client = actionlib.SimpleActionClient(folding_action_name, FoldingControllerAction)
-    stop_folding_pub = rospy.Publisher("/folding/disable", Bool)
+    approach_client = actionlib.SimpleActionClient(approach_action_name, ApproachControllerAction)
+    stop_folding_pub = rospy.Publisher("/folding/disable", Bool, queue_size=1)
 
     rospy.loginfo("Waiting for move action server...")
     move_client.wait_for_server()
     rospy.loginfo("Waiting for folding action server...")
     folding_client.wait_for_server()
+    rospy.loginfo("Waiting for approach action server...")
+    approach_client.wait_for_server()
     rospy.loginfo("Waiting for action request...")
     experiment_server = actionlib.SimpleActionServer("/folding/initialize", RunFoldingAction)
     stop_msg = Bool()
@@ -90,7 +98,7 @@ if __name__ == "__main__":
 
         if rospy.is_shutdown():
             break
-            
+
         goal = experiment_server.accept_new_goal()
         rospy.loginfo("Initializing folding experiment...")
         stop_msg.data = True
@@ -113,6 +121,26 @@ if __name__ == "__main__":
             left_arm_move_goal.joint_target = joint_state["left"]
 
             success = monitor_action_goal(experiment_server, move_client, left_arm_move_goal, action_name = move_action_name)
+
+            if not success:
+                break
+
+            for service in force_torque_reset_services: # Zero ft sensors
+                try:
+                    approach_service = rospy.ServiceProxy(service, Empty)
+                    approach_service()
+                except rospy.ServiceException, e:
+                    print "Service call failed: %s"%e
+
+            rospy.sleep(0.5)
+            stop_msg.data = False
+            stop_folding_pub.publish(stop_msg)
+            approach_move_goal = ApproachControllerGoal()
+            approach_move_goal.desired_twist.header.frame_id = approach_frame
+            approach_move_goal.desired_twist.twist.linear.z = 0.01
+            approach_move_goal.max_contact_force = 1.0
+
+            success = monitor_action_goal(experiment_server, approach_client, approach_move_goal, action_name = approach_action_name)
 
             if not success:
                 break
