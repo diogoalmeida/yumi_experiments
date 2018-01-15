@@ -95,6 +95,11 @@ namespace yumi_experiments
       return ret;
     }
 
+    for (int i = 0; i < ret.velocity.size(); i++) // Make sure to command 0 to all non-actuated joints
+    {
+      ret.velocity[i] = 0.0;
+    }
+
     KDL::JntArray desired_q_dot(7);
     kdl_manager_->getGrippingVelIK(approach_arm_eef_, current_state, desired_approach_twist_, desired_q_dot);
     kdl_manager_->getJointState(approach_arm_eef_, desired_q_dot.data, ret);
