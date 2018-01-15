@@ -7,6 +7,6 @@ approach:
   approach_frame: l_gripping_point
 ft_reset_services: [/yumi_left_arm_gravity_comp/calibrate_bias, /yumi_right_arm_gravity_comp/calibrate_bias]
 right_arm:
-  joint_state: [1.37982, -1.41619, -1.28724, -0.02804, -0.36039, 1.19610, 0.99614]
+  joint_state: [1.37998, -1.41813, -1.23957, -0.10570, -0.39259, 1.27131, 1.00927]
 left_arm:
-  joint_state: [-1.55093, -1.68061, 0.36581, 0.81071, 1.50316, 1.81734,  -2.40414]
+  joint_state: [-1.88020, -1.58646, 0.61070, 0.79583, 1.84154, 1.87208,  -2.59034]

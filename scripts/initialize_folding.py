@@ -106,9 +106,9 @@ if __name__ == "__main__":
 
         while experiment_server.is_active():
             right_arm_move_goal = MoveGoal()
-            right_arm_move_goal.arm = "right"
+            right_arm_move_goal.arm = "left"
             right_arm_move_goal.use_pose_target = False
-            right_arm_move_goal.joint_target = joint_state["right"]
+            right_arm_move_goal.joint_target = joint_state["left"]
 
             success = monitor_action_goal(experiment_server, move_client, right_arm_move_goal, action_name = move_action_name)
 
@@ -116,9 +116,9 @@ if __name__ == "__main__":
                 break
 
             left_arm_move_goal = MoveGoal()
-            left_arm_move_goal.arm = "left"
+            left_arm_move_goal.arm = "right"
             left_arm_move_goal.use_pose_target = False
-            left_arm_move_goal.joint_target = joint_state["left"]
+            left_arm_move_goal.joint_target = joint_state["right"]
 
             success = monitor_action_goal(experiment_server, move_client, left_arm_move_goal, action_name = move_action_name)
 
@@ -138,7 +138,7 @@ if __name__ == "__main__":
             approach_move_goal = ApproachControllerGoal()
             approach_move_goal.desired_twist.header.frame_id = approach_frame
             approach_move_goal.desired_twist.twist.linear.z = 0.01
-            approach_move_goal.max_contact_force = 1.0
+            approach_move_goal.max_contact_force = 2.0
 
             success = monitor_action_goal(experiment_server, approach_client, approach_move_goal, action_name = approach_action_name)
 
