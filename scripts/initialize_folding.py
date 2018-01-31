@@ -138,7 +138,7 @@ if __name__ == "__main__":
             approach_move_goal = ApproachControllerGoal()
             approach_move_goal.desired_twist.header.frame_id = approach_frame
             approach_move_goal.desired_twist.twist.linear.z = 0.01
-            approach_move_goal.max_contact_force = 2.0
+            approach_move_goal.max_contact_force = 1.5
 
             success = monitor_action_goal(experiment_server, approach_client, approach_move_goal, action_name = approach_action_name)
 
