@@ -17,7 +17,7 @@ link_directories(${catkin_LIBRARY_DIRS})
 
 add_action_files(
 	DIRECTORY action
-	FILES RunFolding.action ApproachController.action
+	FILES RunFolding.action ApproachController.action AdmittanceController.action
 )
 
 generate_messages(
@@ -40,3 +40,7 @@ include_directories(
 add_executable(approach_action_node src/approach_action_node.cpp src/approach_controller.cpp)
 target_link_libraries(approach_action_node ${catkin_LIBRARIES})
 add_dependencies(approach_action_node ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)
+
+add_executable(admittance_action_node src/admittance_action_node.cpp src/admittance_controller.cpp)
+target_link_libraries(admittance_action_node ${catkin_LIBRARIES})
+add_dependencies(admittance_action_node ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)
