@@ -35,6 +35,7 @@ namespace yumi_experiments
     std::vector<Eigen::Matrix<double, 6, 1> > cart_vel_;
     Eigen::Matrix<double, 6, 6> B_, K_d_;
     Eigen::MatrixXd K_p_;
+    bool use_right_, use_left_;
     generic_control_toolbox::WrenchManager wrench_manager_;
   };
 }

@@ -100,6 +100,8 @@ namespace yumi_experiments
   {
     tf::poseMsgToEigen(goal->desired_right_pose.pose, desired_pose_[RIGHT_ARM]);
     tf::poseMsgToEigen(goal->desired_left_pose.pose, desired_pose_[LEFT_ARM]);
+    use_left_ = goal->use_left;
+    use_right_ = goal->use_right;
     cart_vel_[RIGHT_ARM] = Eigen::Matrix<double, 6, 1>::Zero();
     cart_vel_[LEFT_ARM] = Eigen::Matrix<double, 6, 1>::Zero();
     return true;
@@ -120,6 +122,9 @@ namespace yumi_experiments
     std::vector<Eigen::Matrix<double, 6, 1> > wrench(2);
     std::vector<Eigen::Matrix<double, 6, 1> > acc(2);
     std::vector<Eigen::Matrix<double, 6, 1> > error(2);
+    KDL::Frame desired_pose;
+    KDL::Rotation relative_r;
+    double r, r_d, p, p_d, y, y_d;
 
     kdl_manager_->getGrippingPoint(eef_name_[LEFT_ARM], current_state, pose[LEFT_ARM]);
     kdl_manager_->getGrippingPoint(eef_name_[RIGHT_ARM], current_state, pose[RIGHT_ARM]);
@@ -132,21 +137,47 @@ namespace yumi_experiments
     wrench_manager_.wrenchAtGrippingPoint(eef_name_[RIGHT_ARM], wrench[RIGHT_ARM]);
     wrench_manager_.wrenchAtGrippingPoint(eef_name_[LEFT_ARM], wrench[LEFT_ARM]);
 
-    error[LEFT_ARM].block<3, 1>(0, 0) = desired_pose_[LEFT_ARM].translation() - pose_eig[LEFT_ARM].translation();
-    error[LEFT_ARM].block<3, 1>(3, 0) = Eigen::Vector3d::Zero();
+    for (int i = 0; i < ret.velocity.size(); i++) // Make sure to command 0 to all non-actuated joints
+    {
+      ret.velocity[i] = 0.0;
+    }
 
-    B_ = Eigen::Matrix<double, 6, 6>::Identity();
-    acc[LEFT_ARM] = B_.llt().solve(0*wrench[LEFT_ARM] - K_d_*0*vel_eig[LEFT_ARM] - K_p_*error[LEFT_ARM]);
-    cart_vel_[LEFT_ARM] += acc[LEFT_ARM]*dt.toSec();
+    if (use_left_)
+    {
+      error[LEFT_ARM].block<3, 1>(0, 0) = desired_pose_[LEFT_ARM].translation() - pose_eig[LEFT_ARM].translation();
+      tf::transformEigenToKDL(desired_pose_[LEFT_ARM], desired_pose);
+      relative_r = pose[LEFT_ARM].M*desired_pose.M;
+      relative_r.GetRPY(r, p, y);
+      error[LEFT_ARM].block<3, 1>(3, 0) << r_d - r, p_d - p, y_d - y;
+      tf::twistEigenToMsg(error[LEFT_ARM], feedback_.left_error);
+      action_server_->publishFeedback(feedback_);
 
-    std::cout << cart_vel_[LEFT_ARM] << std::endl << std::endl;
-    std::cout << "-----------" << std::endl;
-    tf::twistEigenToKDL(cart_vel_[LEFT_ARM], desired_vel[LEFT_ARM]);
-    std::cout << desired_vel[LEFT_ARM].vel.x() << ", " << desired_vel[LEFT_ARM].vel.y() << ", " << desired_vel[LEFT_ARM].vel.z() << std::endl;
+      B_ = Eigen::Matrix<double, 6, 6>::Identity();
+      acc[LEFT_ARM] = B_.llt().solve(K_p_*error[LEFT_ARM] - K_d_*vel_eig[LEFT_ARM]);
+      cart_vel_[LEFT_ARM] += acc[LEFT_ARM]*dt.toSec();
+      tf::twistEigenToKDL(cart_vel_[LEFT_ARM], desired_vel[LEFT_ARM]);
+      desired_vel[LEFT_ARM] = pose[LEFT_ARM].Inverse()*desired_vel[LEFT_ARM];
+      KDL::JntArray q_dot(7);
+      kdl_manager_->getGrippingVelIK(eef_name_[LEFT_ARM], current_state, desired_vel[LEFT_ARM], q_dot);
+      kdl_manager_->getJointState(eef_name_[LEFT_ARM], q_dot.data, ret);
+    }
 
-    KDL::JntArray q_dot(7);
-    kdl_manager_->getGrippingVelIK(eef_name_[LEFT_ARM], current_state, desired_vel[LEFT_ARM], q_dot);
-    kdl_manager_->getJointState(eef_name_[LEFT_ARM], q_dot.data, ret);
+    if (use_right_)
+    {
+      error[RIGHT_ARM].block<3, 1>(0, 0) = desired_pose_[RIGHT_ARM].translation() - pose_eig[RIGHT_ARM].translation();
+      error[RIGHT_ARM].block<3, 1>(3, 0) = Eigen::Vector3d::Zero();
+      tf::twistEigenToMsg(error[RIGHT_ARM], feedback_.left_error);
+      action_server_->publishFeedback(feedback_);
+
+      B_ = Eigen::Matrix<double, 6, 6>::Identity();
+      acc[RIGHT_ARM] = B_.llt().solve(K_p_*error[RIGHT_ARM] - K_d_*vel_eig[RIGHT_ARM]);
+      cart_vel_[RIGHT_ARM] += acc[RIGHT_ARM]*dt.toSec();
+      tf::twistEigenToKDL(cart_vel_[RIGHT_ARM], desired_vel[RIGHT_ARM]);
+      desired_vel[RIGHT_ARM] = pose[RIGHT_ARM].Inverse()*desired_vel[RIGHT_ARM];
+      KDL::JntArray q_dot(7);
+      kdl_manager_->getGrippingVelIK(eef_name_[RIGHT_ARM], current_state, desired_vel[RIGHT_ARM], q_dot);
+      kdl_manager_->getJointState(eef_name_[RIGHT_ARM], q_dot.data, ret);
+    }
 
     return ret;
   }

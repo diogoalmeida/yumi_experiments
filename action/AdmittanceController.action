@@ -1,4 +1,9 @@
+bool use_right
 geometry_msgs/PoseStamped desired_right_pose
+bool use_left
 geometry_msgs/PoseStamped desired_left_pose
 ---
+
 ---
+geometry_msgs/Twist right_error
+geometry_msgs/Twist left_error
