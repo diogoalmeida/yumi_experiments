@@ -112,6 +112,33 @@ namespace yumi_experiments
 
   }
 
+  void AdmittanceController::getT(const KDL::Frame &desired_pose, const KDL::Frame &pose, Eigen::Matrix3d &T) const
+  {
+    double z1, y, z2;
+    KDL::Rotation m_e;
+    m_e = desired_pose.M.Inverse()*pose.M;
+    m_e.GetEulerZYZ(z1, y, z2);
+
+    T << 0, -sin(z1), cos(z1)*sin(y),
+         0, cos(z1), sin(z1)*sin(y),
+         1, 0, cos(y);
+  }
+
+  void AdmittanceController::computeAdmittanceError(const KDL::Frame &desired_pose, const KDL::Frame &pose, Eigen::Matrix<double, 6, 1> &error) const
+  {
+    KDL::Vector p_e;
+    KDL::Rotation m_e;
+    Eigen::Vector3d temp;
+    double z1, y, z2;
+
+    p_e = desired_pose.M*(pose.p - desired_pose.p);
+    m_e = desired_pose.M*pose.M.Inverse();
+    m_e.GetEulerZYZ(z1, y, z2);
+    tf::vectorKDLToEigen(-p_e, temp);
+    error.block<3, 1>(0, 0) = temp;
+    error.block<3, 1>(3, 0) << -z1, -y, -z2;
+  }
+
   sensor_msgs::JointState AdmittanceController::controlAlgorithm(const sensor_msgs::JointState &current_state, const ros::Duration &dt)
   {
     sensor_msgs::JointState ret = current_state;
@@ -122,9 +149,6 @@ namespace yumi_experiments
     std::vector<Eigen::Matrix<double, 6, 1> > wrench(2);
     std::vector<Eigen::Matrix<double, 6, 1> > acc(2);
     std::vector<Eigen::Matrix<double, 6, 1> > error(2);
-    KDL::Frame desired_pose;
-    KDL::Rotation relative_r;
-    double r, r_d, p, p_d, y, y_d;
 
     kdl_manager_->getGrippingPoint(eef_name_[LEFT_ARM], current_state, pose[LEFT_ARM]);
     kdl_manager_->getGrippingPoint(eef_name_[RIGHT_ARM], current_state, pose[RIGHT_ARM]);
@@ -144,18 +168,23 @@ namespace yumi_experiments
 
     if (use_left_)
     {
-      error[LEFT_ARM].block<3, 1>(0, 0) = desired_pose_[LEFT_ARM].translation() - pose_eig[LEFT_ARM].translation();
+      KDL::Frame desired_pose;
+      Eigen::Matrix3d T, R;
+      Eigen::Matrix<double, 6, 1> vel_converted = vel_eig[LEFT_ARM], commanded_vel;
       tf::transformEigenToKDL(desired_pose_[LEFT_ARM], desired_pose);
-      relative_r = pose[LEFT_ARM].M*desired_pose.M;
-      relative_r.GetRPY(r, p, y);
-      error[LEFT_ARM].block<3, 1>(3, 0) << r_d - r, p_d - p, y_d - y;
+      computeAdmittanceError(desired_pose, pose[LEFT_ARM], error[LEFT_ARM]);
+      getT(desired_pose, pose[LEFT_ARM], T);
       tf::twistEigenToMsg(error[LEFT_ARM], feedback_.left_error);
       action_server_->publishFeedback(feedback_);
 
-      B_ = Eigen::Matrix<double, 6, 6>::Identity();
-      acc[LEFT_ARM] = B_.llt().solve(K_p_*error[LEFT_ARM] - K_d_*vel_eig[LEFT_ARM]);
+      R = desired_pose_[LEFT_ARM].matrix().block<3, 3>(0, 0);
+      // vel_converted.block<3, 1>(3, 0) = -T.householderQr().solve(R.transpose()*vel_converted.block<3, 1>(3, 0));
+      acc[LEFT_ARM] = B_.llt().solve(K_p_*error[LEFT_ARM] - K_d_*vel_converted);
       cart_vel_[LEFT_ARM] += acc[LEFT_ARM]*dt.toSec();
-      tf::twistEigenToKDL(cart_vel_[LEFT_ARM], desired_vel[LEFT_ARM]);
+      commanded_vel = cart_vel_[LEFT_ARM];
+      // commanded_vel.block<3, 1>(3, 0) = T*commanded_vel.block<3, 1>(3, 0);
+
+      tf::twistEigenToKDL(commanded_vel, desired_vel[LEFT_ARM]);
       desired_vel[LEFT_ARM] = pose[LEFT_ARM].Inverse()*desired_vel[LEFT_ARM];
       KDL::JntArray q_dot(7);
       kdl_manager_->getGrippingVelIK(eef_name_[LEFT_ARM], current_state, desired_vel[LEFT_ARM], q_dot);
@@ -169,7 +198,6 @@ namespace yumi_experiments
       tf::twistEigenToMsg(error[RIGHT_ARM], feedback_.left_error);
       action_server_->publishFeedback(feedback_);
 
-      B_ = Eigen::Matrix<double, 6, 6>::Identity();
       acc[RIGHT_ARM] = B_.llt().solve(K_p_*error[RIGHT_ARM] - K_d_*vel_eig[RIGHT_ARM]);
       cart_vel_[RIGHT_ARM] += acc[RIGHT_ARM]*dt.toSec();
       tf::twistEigenToKDL(cart_vel_[RIGHT_ARM], desired_vel[RIGHT_ARM]);

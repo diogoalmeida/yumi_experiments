@@ -28,6 +28,21 @@ namespace yumi_experiments
     bool init();
     void resetController();
 
+    /**
+      Computes the operational space error between the desired end-effector pose and
+      the one obtained from forward kinematics.
+
+      @param desired_pose The desired cartesian pose of the end-effector.
+      @param pose The current cartesian pose of the end-effector.
+      @param error The operational space error. The orientation error is represented with an Euler ZYZ parametrization.
+    **/
+    void computeAdmittanceError(const KDL::Frame &desired_pose, const KDL::Frame &pose, Eigen::Matrix<double, 6, 1> &error) const;
+
+    /**
+      Compute transform matrix between differential euler angles and angular velocities.
+    **/
+    void getT(const KDL::Frame &desired_pose, const KDL::Frame &pose, Eigen::Matrix3d &T) const;
+
     ros::NodeHandle nh_;
     std::shared_ptr<generic_control_toolbox::KDLManager> kdl_manager_;
     std::vector<std::string> eef_name_;
