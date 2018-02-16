@@ -52,6 +52,7 @@ namespace yumi_experiments
     Eigen::MatrixXd K_p_;
     bool use_right_, use_left_;
     generic_control_toolbox::WrenchManager wrench_manager_;
+    generic_control_toolbox::MatrixParser matrix_parser_;
   };
 }
 #endif

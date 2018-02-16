@@ -52,7 +52,7 @@ namespace yumi_experiments
       return false;
     }
 
-    frequency = settling_time*damping_ratio/4;
+    frequency = 4/(settling_time*damping_ratio);
     B_ = K_p_/(frequency*frequency);
     K_d_ = 2*B_*damping_ratio*frequency;
 
@@ -114,14 +114,15 @@ namespace yumi_experiments
 
   void AdmittanceController::getT(const KDL::Frame &desired_pose, const KDL::Frame &pose, Eigen::Matrix3d &T) const
   {
-    double z1, y, z2;
-    KDL::Rotation m_e;
-    m_e = desired_pose.M.Inverse()*pose.M;
-    m_e.GetEulerZYZ(z1, y, z2);
+    double z1, z1d, y, yd, z2, z2d;
+    // KDL::Rotation m_e;
+    // m_e = desired_pose.M*pose.M.Inverse();
+    desired_pose.M.GetEulerZYZ(z1d, yd, z2d);
+    pose.M.GetEulerZYZ(z1, y, z2);
 
-    T << 0, -sin(z1), cos(z1)*sin(y),
-         0, cos(z1), sin(z1)*sin(y),
-         1, 0, cos(y);
+    T << 0, -sin(z1d - z1), cos(z1d - z1)*sin(yd - y),
+         0, cos(z1d - z1), sin(z1d - z1)*sin(yd - y),
+         1, 0, cos(yd - y);
   }
 
   void AdmittanceController::computeAdmittanceError(const KDL::Frame &desired_pose, const KDL::Frame &pose, Eigen::Matrix<double, 6, 1> &error) const
@@ -129,14 +130,17 @@ namespace yumi_experiments
     KDL::Vector p_e;
     KDL::Rotation m_e;
     Eigen::Vector3d temp;
-    double z1, y, z2;
+    double z1, z1d, y, yd, z2, z2d;
 
-    p_e = desired_pose.M*(pose.p - desired_pose.p);
-    m_e = desired_pose.M*pose.M.Inverse();
-    m_e.GetEulerZYZ(z1, y, z2);
-    tf::vectorKDLToEigen(-p_e, temp);
+    p_e = desired_pose.p - pose.p;
+    // m_e = desired_pose.M*pose.M.Inverse();
+    // m_e.GetEulerZYZ(z1, y, z2);
+    desired_pose.M.GetEulerZYZ(z1d, yd, z2d);
+    pose.M.GetEulerZYZ(z1, y, z2);
+    tf::vectorKDLToEigen(p_e, temp);
     error.block<3, 1>(0, 0) = temp;
-    error.block<3, 1>(3, 0) << -z1, -y, -z2;
+    error.block<3, 1>(3, 0) << z1d - z1, yd - y, z2d - z2;
+    // error.block<3, 1>(3, 0) << 0, 0, 0;
   }
 
   sensor_msgs::JointState AdmittanceController::controlAlgorithm(const sensor_msgs::JointState &current_state, const ros::Duration &dt)
@@ -169,20 +173,24 @@ namespace yumi_experiments
     if (use_left_)
     {
       KDL::Frame desired_pose;
-      Eigen::Matrix3d T, R;
+      Eigen::Matrix3d T, R, K_p_prime;
+      Eigen::Vector3d quat_v;
+      double quat_w;
       Eigen::Matrix<double, 6, 1> vel_converted = vel_eig[LEFT_ARM], commanded_vel;
       tf::transformEigenToKDL(desired_pose_[LEFT_ARM], desired_pose);
       computeAdmittanceError(desired_pose, pose[LEFT_ARM], error[LEFT_ARM]);
       getT(desired_pose, pose[LEFT_ARM], T);
-      tf::twistEigenToMsg(error[LEFT_ARM], feedback_.left_error);
-      action_server_->publishFeedback(feedback_);
 
-      R = desired_pose_[LEFT_ARM].matrix().block<3, 3>(0, 0);
-      // vel_converted.block<3, 1>(3, 0) = -T.householderQr().solve(R.transpose()*vel_converted.block<3, 1>(3, 0));
-      acc[LEFT_ARM] = B_.llt().solve(K_p_*error[LEFT_ARM] - K_d_*vel_converted);
+      acc[LEFT_ARM].block<3, 1>(0, 0) = B_.block<3, 3>(0, 0).llt().solve(K_p_.block<3, 3>(0,0)*error[LEFT_ARM].block<3, 1>(0, 0) - K_d_.block<3, 3>(0, 0)*vel_converted.block<3, 1>(0, 0) - desired_pose_[LEFT_ARM].matrix().block<3, 3>(0, 0)*wrench[LEFT_ARM].block<3, 1>(0, 0));
+      (desired_pose.M*pose[LEFT_ARM].M.Inverse()).GetQuaternion(quat_v[0], quat_v[1], quat_v[2], quat_w);
+      K_p_prime = 2*(quat_w*Eigen::Matrix3d::Identity() - matrix_parser_.computeSkewSymmetric(quat_v)).transpose()*K_p_.block<3,3>(3,3);
+      acc[LEFT_ARM].block<3, 1>(3, 0) = B_.block<3, 3>(3, 3).llt().solve(K_p_prime*quat_v - K_d_.block<3, 3>(3, 3)*vel_converted.block<3, 1>(3, 0) - desired_pose_[LEFT_ARM].matrix().block<3, 3>(0, 0)*wrench[LEFT_ARM].block<3, 1>(3, 0));
+
       cart_vel_[LEFT_ARM] += acc[LEFT_ARM]*dt.toSec();
       commanded_vel = cart_vel_[LEFT_ARM];
       // commanded_vel.block<3, 1>(3, 0) = T*commanded_vel.block<3, 1>(3, 0);
+      tf::twistEigenToMsg(error[LEFT_ARM], feedback_.left_error);
+      action_server_->publishFeedback(feedback_);
 
       tf::twistEigenToKDL(commanded_vel, desired_vel[LEFT_ARM]);
       desired_vel[LEFT_ARM] = pose[LEFT_ARM].Inverse()*desired_vel[LEFT_ARM];
