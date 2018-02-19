@@ -5,5 +5,3 @@ geometry_msgs/PoseStamped desired_left_pose
 ---
 
 ---
-geometry_msgs/Twist right_error
-geometry_msgs/Twist left_error

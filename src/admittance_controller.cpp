@@ -102,8 +102,8 @@ namespace yumi_experiments
     tf::poseMsgToEigen(goal->desired_left_pose.pose, desired_pose_[LEFT_ARM]);
     use_left_ = goal->use_left;
     use_right_ = goal->use_right;
-    cart_vel_[RIGHT_ARM] = Eigen::Matrix<double, 6, 1>::Zero();
-    cart_vel_[LEFT_ARM] = Eigen::Matrix<double, 6, 1>::Zero();
+    cart_vel_[RIGHT_ARM] = Vector6d::Zero();
+    cart_vel_[LEFT_ARM] = Vector6d::Zero();
     return true;
   }
 
@@ -112,20 +112,7 @@ namespace yumi_experiments
 
   }
 
-  void AdmittanceController::getT(const KDL::Frame &desired_pose, const KDL::Frame &pose, Eigen::Matrix3d &T) const
-  {
-    double z1, z1d, y, yd, z2, z2d;
-    // KDL::Rotation m_e;
-    // m_e = desired_pose.M*pose.M.Inverse();
-    desired_pose.M.GetEulerZYZ(z1d, yd, z2d);
-    pose.M.GetEulerZYZ(z1, y, z2);
-
-    T << 0, -sin(z1d - z1), cos(z1d - z1)*sin(yd - y),
-         0, cos(z1d - z1), sin(z1d - z1)*sin(yd - y),
-         1, 0, cos(yd - y);
-  }
-
-  void AdmittanceController::computeAdmittanceError(const KDL::Frame &desired_pose, const KDL::Frame &pose, Eigen::Matrix<double, 6, 1> &error) const
+  void AdmittanceController::computeAdmittanceError(const KDL::Frame &desired_pose, const KDL::Frame &pose, Vector6d &error) const
   {
     KDL::Vector p_e;
     KDL::Rotation m_e;
@@ -149,10 +136,10 @@ namespace yumi_experiments
     std::vector<KDL::Frame> pose(2);
     std::vector<KDL::Twist> vel(2), desired_vel(2);
     std::vector<Eigen::Affine3d> pose_eig(2);
-    std::vector<Eigen::Matrix<double, 6, 1> > vel_eig(2);
-    std::vector<Eigen::Matrix<double, 6, 1> > wrench(2);
-    std::vector<Eigen::Matrix<double, 6, 1> > acc(2);
-    std::vector<Eigen::Matrix<double, 6, 1> > error(2);
+    std::vector<Vector6d > vel_eig(2);
+    std::vector<Vector6d > wrench(2);
+    std::vector<Vector6d > acc(2);
+    std::vector<Vector6d > error(2);
 
     kdl_manager_->getGrippingPoint(eef_name_[LEFT_ARM], current_state, pose[LEFT_ARM]);
     kdl_manager_->getGrippingPoint(eef_name_[RIGHT_ARM], current_state, pose[RIGHT_ARM]);
@@ -172,25 +159,12 @@ namespace yumi_experiments
 
     if (use_left_)
     {
-      KDL::Frame desired_pose;
-      Eigen::Matrix3d T, R, K_p_prime;
-      Eigen::Vector3d quat_v;
-      double quat_w;
-      Eigen::Matrix<double, 6, 1> vel_converted = vel_eig[LEFT_ARM], commanded_vel;
-      tf::transformEigenToKDL(desired_pose_[LEFT_ARM], desired_pose);
-      computeAdmittanceError(desired_pose, pose[LEFT_ARM], error[LEFT_ARM]);
-      getT(desired_pose, pose[LEFT_ARM], T);
+      Vector6d commanded_vel;
 
-      acc[LEFT_ARM].block<3, 1>(0, 0) = B_.block<3, 3>(0, 0).llt().solve(K_p_.block<3, 3>(0,0)*error[LEFT_ARM].block<3, 1>(0, 0) - K_d_.block<3, 3>(0, 0)*vel_converted.block<3, 1>(0, 0) - desired_pose_[LEFT_ARM].matrix().block<3, 3>(0, 0)*wrench[LEFT_ARM].block<3, 1>(0, 0));
-      (desired_pose.M*pose[LEFT_ARM].M.Inverse()).GetQuaternion(quat_v[0], quat_v[1], quat_v[2], quat_w);
-      K_p_prime = 2*(quat_w*Eigen::Matrix3d::Identity() - matrix_parser_.computeSkewSymmetric(quat_v)).transpose()*K_p_.block<3,3>(3,3);
-      acc[LEFT_ARM].block<3, 1>(3, 0) = B_.block<3, 3>(3, 3).llt().solve(K_p_prime*quat_v - K_d_.block<3, 3>(3, 3)*vel_converted.block<3, 1>(3, 0) - desired_pose_[LEFT_ARM].matrix().block<3, 3>(0, 0)*wrench[LEFT_ARM].block<3, 1>(3, 0));
+      acc[LEFT_ARM] = computeCartesianAccelerations(vel_eig[LEFT_ARM], pose[LEFT_ARM], desired_pose_[RIGHT_ARM], wrench[LEFT_ARM]);
 
       cart_vel_[LEFT_ARM] += acc[LEFT_ARM]*dt.toSec();
       commanded_vel = cart_vel_[LEFT_ARM];
-      // commanded_vel.block<3, 1>(3, 0) = T*commanded_vel.block<3, 1>(3, 0);
-      tf::twistEigenToMsg(error[LEFT_ARM], feedback_.left_error);
-      action_server_->publishFeedback(feedback_);
 
       tf::twistEigenToKDL(commanded_vel, desired_vel[LEFT_ARM]);
       desired_vel[LEFT_ARM] = pose[LEFT_ARM].Inverse()*desired_vel[LEFT_ARM];
@@ -201,14 +175,14 @@ namespace yumi_experiments
 
     if (use_right_)
     {
-      error[RIGHT_ARM].block<3, 1>(0, 0) = desired_pose_[RIGHT_ARM].translation() - pose_eig[RIGHT_ARM].translation();
-      error[RIGHT_ARM].block<3, 1>(3, 0) = Eigen::Vector3d::Zero();
-      tf::twistEigenToMsg(error[RIGHT_ARM], feedback_.left_error);
-      action_server_->publishFeedback(feedback_);
+      Vector6d commanded_vel;
 
-      acc[RIGHT_ARM] = B_.llt().solve(K_p_*error[RIGHT_ARM] - K_d_*vel_eig[RIGHT_ARM]);
+      acc[RIGHT_ARM] = computeCartesianAccelerations(vel_eig[RIGHT_ARM], pose[RIGHT_ARM], desired_pose_[RIGHT_ARM], wrench[RIGHT_ARM]);
+
       cart_vel_[RIGHT_ARM] += acc[RIGHT_ARM]*dt.toSec();
-      tf::twistEigenToKDL(cart_vel_[RIGHT_ARM], desired_vel[RIGHT_ARM]);
+      commanded_vel = cart_vel_[RIGHT_ARM];
+
+      tf::twistEigenToKDL(commanded_vel, desired_vel[RIGHT_ARM]);
       desired_vel[RIGHT_ARM] = pose[RIGHT_ARM].Inverse()*desired_vel[RIGHT_ARM];
       KDL::JntArray q_dot(7);
       kdl_manager_->getGrippingVelIK(eef_name_[RIGHT_ARM], current_state, desired_vel[RIGHT_ARM], q_dot);
@@ -216,5 +190,24 @@ namespace yumi_experiments
     }
 
     return ret;
+  }
+
+  Vector6d AdmittanceController::computeCartesianAccelerations(const Vector6d &vel_eig, const KDL::Frame &pose, const Eigen::Affine3d &desired_pose, const Vector6d &wrench) const
+  {
+      KDL::Frame desired_pose_kdl;
+      Eigen::Matrix3d T, R, K_p_prime;
+      Eigen::Vector3d quat_v;
+      double quat_w;
+      Vector6d commanded_vel, cartesian_error, acc;
+      tf::transformEigenToKDL(desired_pose, desired_pose_kdl);
+      computeAdmittanceError(desired_pose_kdl, pose, cartesian_error);
+
+      acc.block<3, 1>(0, 0) = B_.block<3, 3>(0, 0).llt().solve(K_p_.block<3, 3>(0,0)*cartesian_error.block<3, 1>(0, 0) - K_d_.block<3, 3>(0, 0)*vel_eig.block<3, 1>(0, 0) - desired_pose.matrix().block<3, 3>(0, 0)*wrench.block<3, 1>(0, 0));
+
+      (desired_pose_kdl.M*pose.M.Inverse()).GetQuaternion(quat_v[0], quat_v[1], quat_v[2], quat_w);
+      K_p_prime = 2*(quat_w*Eigen::Matrix3d::Identity() - matrix_parser_.computeSkewSymmetric(quat_v)).transpose()*K_p_.block<3,3>(3,3);
+      acc.block<3, 1>(3, 0) = B_.block<3, 3>(3, 3).llt().solve(K_p_prime*quat_v - K_d_.block<3, 3>(3, 3)*vel_eig.block<3, 1>(3, 0) - desired_pose.matrix().block<3, 3>(0, 0)*wrench.block<3, 1>(3, 0));
+
+      return acc;
   }
 }
