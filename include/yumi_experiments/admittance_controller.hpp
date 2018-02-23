@@ -31,6 +31,18 @@ namespace yumi_experiments
     void resetController();
 
     /**
+      Saturate the commanded joint velocities if they violate the joint limits.
+      TODO: Factorize to parent class
+
+      @param eef The eef key in the KDL manager.
+      @param q The current joint positions.
+      @param desired_q_dot The desired joint velocities.
+      @param dt Current time step.
+      @retruen False in case of error, true otherwise.
+    **/
+    bool enforceJointLimits(const std::string &eef, const KDL::JntArray &q, KDL::JntArray &desired_q_dot, double dt) const;
+
+    /**
       Computes the operational space error between the desired end-effector pose and
       the one obtained from forward kinematics.
 
@@ -45,6 +57,16 @@ namespace yumi_experiments
     **/
     Vector6d computeCartesianAccelerations(const Vector6d &vel_eig, const KDL::Frame &pose, const Eigen::Affine3d &desired_pose, const Vector6d &wrench) const;
 
+    /**
+      Apply a dead zone to a wrench value based on the force_dead_zone_ and
+      torque_dead_zone_ values. The controller will only take into account force
+      and torque values which have a magnitude higher than the dead zone values.
+
+      @param wrench The measured wrench
+      @return The "dead zoned" wrench.
+    **/
+    Vector6d applyDeadZone(const Vector6d &wrench) const;
+
     ros::NodeHandle nh_;
     std::shared_ptr<generic_control_toolbox::KDLManager> kdl_manager_;
     std::vector<std::string> eef_name_;
@@ -53,6 +75,7 @@ namespace yumi_experiments
     Eigen::Matrix<double, 6, 6> B_, K_d_;
     Eigen::MatrixXd K_p_;
     bool use_right_, use_left_;
+    double force_dead_zone_, torque_dead_zone_;
     generic_control_toolbox::WrenchManager wrench_manager_;
     generic_control_toolbox::MatrixParser matrix_parser_;
   };

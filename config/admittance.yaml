@@ -9,7 +9,7 @@ left_arm:
 
 right_arm:
   kdl_eef_frame: yumi_link_7_r
-  gripping_frame: r_gripping_point
+  gripping_frame: yumi_link_7_r
   has_ft_sensor: true
   sensor_frame: optodaq_r_sensor_link
   sensor_topic: /yumi/optodaq_r_compensated
@@ -22,9 +22,12 @@ admittance:
   settling_time: 10
   damping_ratio: 1
   K_p:
-    data: [50, 0, 0, 0, 0, 0,
-           0, 50, 0, 0, 0, 0,
-           0, 0, 50, 0, 0, 0,
-           0, 0, 0, 5, 0, 0,
-           0, 0, 0, 0, 5, 0,
-           0, 0, 0, 0, 0, 5]
+    data: [5, 0, 0, 0, 0, 0,
+           0, 5, 0, 0, 0, 0,
+           0, 0, 5, 0, 0, 0,
+           0, 0, 0, 0.1, 0, 0,
+           0, 0, 0, 0, 0.1, 0,
+           0, 0, 0, 0, 0, 0.1]
+
+  force_dead_zone: 1
+  torque_dead_zone: 0.2

@@ -41,6 +41,18 @@ namespace yumi_experiments
       return false;
     }
 
+    if (!nh_.getParam("admittance/torque_dead_zone", torque_dead_zone_))
+    {
+      ROS_ERROR("Missing admittance/torque_dead_zone parameter");
+      return false;
+    }
+
+    if (!nh_.getParam("admittance/force_dead_zone", force_dead_zone_))
+    {
+      ROS_ERROR("Missing admittance/force_dead_zone parameter");
+      return false;
+    }
+
     if(!matrix_parser.parseMatrixData(K_p_, "admittance/K_p", nh_))
     {
       return false;
@@ -112,6 +124,49 @@ namespace yumi_experiments
 
   }
 
+  bool AdmittanceController::enforceJointLimits(const std::string &eef, const KDL::JntArray &q, KDL::JntArray &desired_q_dot, double dt) const
+  {
+    KDL::JntArray q_min(7), q_max(7), q_vel_lim(7);
+    double predicted_position = 0.0;
+
+    if (!kdl_manager_->getJointLimits(eef, q_min, q_max, q_vel_lim))
+    {
+      return false;
+    }
+
+    for (unsigned int i = 0; i < 7; i++)
+    {
+      if (abs(desired_q_dot(i)) > q_vel_lim(i))
+      {
+        ROS_WARN("Commanded velocity in joint %d higher than limit", i);
+
+        if (desired_q_dot(i) > 0)
+        {
+          desired_q_dot(i) = q_vel_lim(i);
+        }
+        else
+        {
+          desired_q_dot(i) = -q_vel_lim(i);
+        }
+      }
+
+      if (q_min(i) == 0 && q_max(i) == 0)
+      {
+        continue; // joint without position limits
+      }
+
+      predicted_position = q(i) + desired_q_dot(i)*dt;
+
+      if (predicted_position < q_min(i) || predicted_position > q_max(i))
+      {
+        ROS_WARN("Joint %d is close to a limit", i);
+        desired_q_dot(i) = 0.0;
+      }
+    }
+
+    return true;
+  }
+
   void AdmittanceController::computeAdmittanceError(const KDL::Frame &desired_pose, const KDL::Frame &pose, Vector6d &error) const
   {
     KDL::Vector p_e;
@@ -128,6 +183,31 @@ namespace yumi_experiments
     error.block<3, 1>(0, 0) = temp;
     error.block<3, 1>(3, 0) << z1d - z1, yd - y, z2d - z2;
     // error.block<3, 1>(3, 0) << 0, 0, 0;
+  }
+
+  Vector6d AdmittanceController::applyDeadZone(const Vector6d &wrench) const
+  {
+    Vector6d corrected_wrench;
+
+    if (wrench.block<3,1>(0,0).norm() > force_dead_zone_)
+    {
+      corrected_wrench.block<3,1>(0,0) = wrench.block<3,1>(0,0) - force_dead_zone_*wrench.block<3,1>(0,0).normalized();
+    }
+    else
+    {
+      corrected_wrench.block<3,1>(0,0) = Eigen::Vector3d::Zero();
+    }
+
+    if (wrench.block<3,1>(3,0).norm() > torque_dead_zone_)
+    {
+      corrected_wrench.block<3,1>(3,0) = wrench.block<3,1>(3,0) - torque_dead_zone_*wrench.block<3,1>(3,0).normalized();
+    }
+    else
+    {
+      corrected_wrench.block<3,1>(3,0) = Eigen::Vector3d::Zero();
+    }
+
+    return corrected_wrench;
   }
 
   sensor_msgs::JointState AdmittanceController::controlAlgorithm(const sensor_msgs::JointState &current_state, const ros::Duration &dt)
@@ -152,6 +232,9 @@ namespace yumi_experiments
     wrench_manager_.wrenchAtGrippingPoint(eef_name_[RIGHT_ARM], wrench[RIGHT_ARM]);
     wrench_manager_.wrenchAtGrippingPoint(eef_name_[LEFT_ARM], wrench[LEFT_ARM]);
 
+    wrench[RIGHT_ARM] = applyDeadZone(wrench[RIGHT_ARM]);
+    wrench[LEFT_ARM] = applyDeadZone(wrench[LEFT_ARM]);
+
     for (int i = 0; i < ret.velocity.size(); i++) // Make sure to command 0 to all non-actuated joints
     {
       ret.velocity[i] = 0.0;
@@ -161,15 +244,17 @@ namespace yumi_experiments
     {
       Vector6d commanded_vel;
 
-      acc[LEFT_ARM] = computeCartesianAccelerations(vel_eig[LEFT_ARM], pose[LEFT_ARM], desired_pose_[RIGHT_ARM], wrench[LEFT_ARM]);
+      acc[LEFT_ARM] = computeCartesianAccelerations(vel_eig[LEFT_ARM], pose[LEFT_ARM], desired_pose_[LEFT_ARM], wrench[LEFT_ARM]);
 
       cart_vel_[LEFT_ARM] += acc[LEFT_ARM]*dt.toSec();
       commanded_vel = cart_vel_[LEFT_ARM];
 
       tf::twistEigenToKDL(commanded_vel, desired_vel[LEFT_ARM]);
       desired_vel[LEFT_ARM] = pose[LEFT_ARM].Inverse()*desired_vel[LEFT_ARM];
-      KDL::JntArray q_dot(7);
+      KDL::JntArray q_dot(7), q(7);
       kdl_manager_->getGrippingVelIK(eef_name_[LEFT_ARM], current_state, desired_vel[LEFT_ARM], q_dot);
+      kdl_manager_->getJointPositions(eef_name_[LEFT_ARM], current_state, q);
+      enforceJointLimits(eef_name_[LEFT_ARM], q, q_dot, dt.toSec());
       kdl_manager_->getJointState(eef_name_[LEFT_ARM], q_dot.data, ret);
     }
 
@@ -184,8 +269,10 @@ namespace yumi_experiments
 
       tf::twistEigenToKDL(commanded_vel, desired_vel[RIGHT_ARM]);
       desired_vel[RIGHT_ARM] = pose[RIGHT_ARM].Inverse()*desired_vel[RIGHT_ARM];
-      KDL::JntArray q_dot(7);
+      KDL::JntArray q_dot(7), q(7);
       kdl_manager_->getGrippingVelIK(eef_name_[RIGHT_ARM], current_state, desired_vel[RIGHT_ARM], q_dot);
+      kdl_manager_->getJointPositions(eef_name_[RIGHT_ARM], current_state, q);
+      enforceJointLimits(eef_name_[RIGHT_ARM], q, q_dot, dt.toSec());
       kdl_manager_->getJointState(eef_name_[RIGHT_ARM], q_dot.data, ret);
     }
 
