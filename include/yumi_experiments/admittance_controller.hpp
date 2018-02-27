@@ -67,6 +67,16 @@ namespace yumi_experiments
     **/
     Vector6d applyDeadZone(const Vector6d &wrench) const;
 
+    /**
+      Saturate the given cartesian acceleration.
+    **/
+    Vector6d saturateAcc(const Vector6d &acc) const;
+
+    /**
+      Saturate the given cartesian velocity.
+    **/
+    Vector6d saturateVel(const Vector6d &vel) const;
+
     ros::NodeHandle nh_;
     std::shared_ptr<generic_control_toolbox::KDLManager> kdl_manager_;
     std::vector<std::string> eef_name_;
@@ -75,7 +85,7 @@ namespace yumi_experiments
     Eigen::Matrix<double, 6, 6> B_, K_d_;
     Eigen::MatrixXd K_p_;
     bool use_right_, use_left_;
-    double force_dead_zone_, torque_dead_zone_;
+    double force_dead_zone_, torque_dead_zone_, pos_offset_, max_lin_acc_, max_ang_acc_, max_lin_vel_, max_ang_vel_;
     generic_control_toolbox::WrenchManager wrench_manager_;
     generic_control_toolbox::MatrixParser matrix_parser_;
   };

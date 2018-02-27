@@ -53,6 +53,36 @@ namespace yumi_experiments
       return false;
     }
 
+    if (!nh_.getParam("admittance/position_offset", pos_offset_))
+    {
+      ROS_ERROR("Missing admittance/position_offset parameter");
+      return false;
+    }
+
+    if (!nh_.getParam("admittance/max_linear_acceleration", max_lin_acc_))
+    {
+      ROS_ERROR("Missing admittance/max_linear_acceleration parameter");
+      return false;
+    }
+
+    if (!nh_.getParam("admittance/max_angular_acceleration", max_ang_acc_))
+    {
+      ROS_ERROR("Missing admittance/max_angular_acceleration parameter");
+      return false;
+    }
+
+    if (!nh_.getParam("admittance/max_linear_velocity", max_lin_vel_))
+    {
+      ROS_ERROR("Missing admittance/max_linear_velocity parameter");
+      return false;
+    }
+
+    if (!nh_.getParam("admittance/max_angular_velocity", max_ang_vel_))
+    {
+      ROS_ERROR("Missing admittance/max_angular_velocity parameter");
+      return false;
+    }
+
     if(!matrix_parser.parseMatrixData(K_p_, "admittance/K_p", nh_))
     {
       return false;
@@ -66,7 +96,7 @@ namespace yumi_experiments
 
     frequency = 4/(settling_time*damping_ratio);
     B_ = K_p_/(frequency*frequency);
-    K_d_ = 2*B_*damping_ratio*frequency;
+    K_d_ = 2*damping_ratio*K_p_/frequency;
 
     kdl_manager_ = std::make_shared<generic_control_toolbox::KDLManager>(base_frame);
 
@@ -128,17 +158,19 @@ namespace yumi_experiments
   {
     KDL::JntArray q_min(7), q_max(7), q_vel_lim(7);
     double predicted_position = 0.0;
+    bool triggered = false;
 
     if (!kdl_manager_->getJointLimits(eef, q_min, q_max, q_vel_lim))
     {
-      return false;
+      return true;
     }
 
     for (unsigned int i = 0; i < 7; i++)
     {
-      if (abs(desired_q_dot(i)) > q_vel_lim(i))
+      if (fabs(desired_q_dot(i)) > q_vel_lim(i))
       {
-        ROS_WARN("Commanded velocity in joint %d higher than limit", i);
+        triggered = true;
+        ROS_WARN("Commanded velocity in joint %u of chain %s higher than limit", i, eef.c_str());
 
         if (desired_q_dot(i) > 0)
         {
@@ -157,14 +189,24 @@ namespace yumi_experiments
 
       predicted_position = q(i) + desired_q_dot(i)*dt;
 
-      if (predicted_position < q_min(i) || predicted_position > q_max(i))
+      if (predicted_position < (q_min(i) + pos_offset_))
       {
-        ROS_WARN("Joint %d is close to a limit", i);
-        desired_q_dot(i) = 0.0;
+        triggered = true;
+        ROS_WARN("Joint %u of chain %s is close to a limit", i, eef.c_str());
+        double error = q_min(i) - predicted_position;
+        desired_q_dot(i) = -0.001/(error - 0.0001);
+      }
+
+      if (predicted_position > (q_max(i) - pos_offset_))
+      {
+        triggered = true;
+        ROS_WARN("Joint %u of chain %s is close to a limit", i, eef.c_str());
+        double error = q_max(i) - predicted_position;
+        desired_q_dot(i) = -0.001/(error + 0.0001);
       }
     }
 
-    return true;
+    return triggered;
   }
 
   void AdmittanceController::computeAdmittanceError(const KDL::Frame &desired_pose, const KDL::Frame &pose, Vector6d &error) const
@@ -210,6 +252,64 @@ namespace yumi_experiments
     return corrected_wrench;
   }
 
+  Vector6d AdmittanceController::saturateAcc(const Vector6d &acc) const
+  {
+    Vector6d ret = acc;
+    for (unsigned int i = 0; i < 3; i++)
+    {
+      if (ret[i] > max_lin_acc_)
+      {
+        ret[i] = max_lin_acc_;
+      }
+
+      if (ret[i] < -max_lin_acc_)
+      {
+        ret[i] = -max_lin_acc_;
+      }
+
+      if (ret[i + 3] > max_ang_acc_)
+      {
+        ret[i + 3] = max_ang_acc_;
+      }
+
+      if (ret[i + 3] < -max_ang_acc_)
+      {
+        ret[i + 3] = -max_ang_acc_;
+      }
+    }
+
+    return ret;
+  }
+
+  Vector6d AdmittanceController::saturateVel(const Vector6d &vel) const
+  {
+    Vector6d ret = vel;
+    for (unsigned int i = 0; i < 3; i++)
+    {
+      if (ret[i] > max_lin_vel_)
+      {
+        ret[i] = max_lin_vel_;
+      }
+
+      if (ret[i] < -max_lin_vel_)
+      {
+        ret[i] = -max_lin_vel_;
+      }
+
+      if (ret[i + 3] > max_ang_vel_)
+      {
+        ret[i + 3] = max_ang_vel_;
+      }
+
+      if (ret[i + 3] < -max_ang_vel_)
+      {
+        ret[i + 3] = -max_ang_vel_;
+      }
+    }
+
+    return ret;
+  }
+
   sensor_msgs::JointState AdmittanceController::controlAlgorithm(const sensor_msgs::JointState &current_state, const ros::Duration &dt)
   {
     sensor_msgs::JointState ret = current_state;
@@ -245,8 +345,10 @@ namespace yumi_experiments
       Vector6d commanded_vel;
 
       acc[LEFT_ARM] = computeCartesianAccelerations(vel_eig[LEFT_ARM], pose[LEFT_ARM], desired_pose_[LEFT_ARM], wrench[LEFT_ARM]);
+      acc[LEFT_ARM] = saturateAcc(acc[LEFT_ARM]);
 
       cart_vel_[LEFT_ARM] += acc[LEFT_ARM]*dt.toSec();
+      cart_vel_[LEFT_ARM] = saturateVel(cart_vel_[LEFT_ARM]);
       commanded_vel = cart_vel_[LEFT_ARM];
 
       tf::twistEigenToKDL(commanded_vel, desired_vel[LEFT_ARM]);
@@ -254,17 +356,29 @@ namespace yumi_experiments
       KDL::JntArray q_dot(7), q(7);
       kdl_manager_->getGrippingVelIK(eef_name_[LEFT_ARM], current_state, desired_vel[LEFT_ARM], q_dot);
       kdl_manager_->getJointPositions(eef_name_[LEFT_ARM], current_state, q);
-      enforceJointLimits(eef_name_[LEFT_ARM], q, q_dot, dt.toSec());
-      kdl_manager_->getJointState(eef_name_[LEFT_ARM], q_dot.data, ret);
+      if(enforceJointLimits(eef_name_[LEFT_ARM], q, q_dot, dt.toSec()))
+      {
+        cart_vel_[LEFT_ARM] -= acc[LEFT_ARM]*dt.toSec();
+      }
+
+      for (unsigned int i = 0; i < 7; i++)
+      {
+        q(i) += q_dot(i)*dt.toSec();
+      }
+
+      kdl_manager_->getJointState(eef_name_[LEFT_ARM], q.data, q_dot.data, ret);
     }
 
     if (use_right_)
     {
       Vector6d commanded_vel;
+      std::vector<bool> triggered_joints;
 
       acc[RIGHT_ARM] = computeCartesianAccelerations(vel_eig[RIGHT_ARM], pose[RIGHT_ARM], desired_pose_[RIGHT_ARM], wrench[RIGHT_ARM]);
+      acc[RIGHT_ARM] = saturateAcc(acc[RIGHT_ARM]);
 
       cart_vel_[RIGHT_ARM] += acc[RIGHT_ARM]*dt.toSec();
+      cart_vel_[RIGHT_ARM] = saturateVel(cart_vel_[RIGHT_ARM]);
       commanded_vel = cart_vel_[RIGHT_ARM];
 
       tf::twistEigenToKDL(commanded_vel, desired_vel[RIGHT_ARM]);
@@ -272,8 +386,17 @@ namespace yumi_experiments
       KDL::JntArray q_dot(7), q(7);
       kdl_manager_->getGrippingVelIK(eef_name_[RIGHT_ARM], current_state, desired_vel[RIGHT_ARM], q_dot);
       kdl_manager_->getJointPositions(eef_name_[RIGHT_ARM], current_state, q);
-      enforceJointLimits(eef_name_[RIGHT_ARM], q, q_dot, dt.toSec());
-      kdl_manager_->getJointState(eef_name_[RIGHT_ARM], q_dot.data, ret);
+      if(enforceJointLimits(eef_name_[RIGHT_ARM], q, q_dot, dt.toSec()))
+      {
+        cart_vel_[RIGHT_ARM] -= acc[RIGHT_ARM]*dt.toSec();
+      }
+
+      for (unsigned int i = 0; i < 7; i++)
+      {
+        q(i) += q_dot(i)*dt.toSec();
+      }
+
+      kdl_manager_->getJointState(eef_name_[RIGHT_ARM], q.data, q_dot.data, ret);
     }
 
     return ret;
