@@ -83,6 +83,18 @@ namespace yumi_experiments
       return false;
     }
 
+    if (!nh_.getParam("admittance/angular_threshold", angular_threshold_))
+    {
+      ROS_ERROR("Missing admittance/angular_threshold parameter");
+      return false;
+    }
+
+    if (!nh_.getParam("admittance/linear_threshold", linear_threshold_))
+    {
+      ROS_ERROR("Missing admittance/linear_threshold parameter");
+      return false;
+    }
+
     if(!matrix_parser.parseMatrixData(K_p_, "admittance/K_p", nh_))
     {
       return false;
@@ -310,6 +322,47 @@ namespace yumi_experiments
     return ret;
   }
 
+  bool AdmittanceController::checkSuccess(const Eigen::Affine3d &desired_pose, const KDL::Frame &current_pose)
+  {
+    Vector6d error;
+    KDL::Frame desired_kdl;
+    bool success = false;
+    double norm, r, p, y;
+    tf::transformEigenToKDL(desired_pose, desired_kdl);
+
+    computeAdmittanceError(desired_kdl, current_pose, error);
+    norm = error.block<3,1>(0,0).norm();
+    r = error[3];
+    p = error[4];
+    y = error[5];
+
+    feedback_.linear_error_norm.push_back(norm);
+    feedback_.roll_error.push_back(r);
+    feedback_.pitch_error.push_back(p);
+    feedback_.yaw_error.push_back(y);
+
+    if (norm < linear_threshold_)
+    {
+      if (fabs(r) < angular_threshold_ && fabs(p) < angular_threshold_ && fabs(y) < angular_threshold_)
+      {
+        success = true;
+      }
+    }
+
+    return success;
+  }
+
+  bool AdmittanceController::checkAbsurdVelocities(const Vector6d &velocity) const
+  {
+    if (velocity.block<3,1>(0,0).norm() > max_lin_vel_)
+    {
+      ROS_WARN("Absurd velocity detected!!");
+      return true;
+    }
+
+    return false;
+  }
+
   sensor_msgs::JointState AdmittanceController::controlAlgorithm(const sensor_msgs::JointState &current_state, const ros::Duration &dt)
   {
     sensor_msgs::JointState ret = current_state;
@@ -332,6 +385,7 @@ namespace yumi_experiments
     wrench_manager_.wrenchAtGrippingPoint(eef_name_[RIGHT_ARM], wrench[RIGHT_ARM]);
     wrench_manager_.wrenchAtGrippingPoint(eef_name_[LEFT_ARM], wrench[LEFT_ARM]);
 
+
     wrench[RIGHT_ARM] = applyDeadZone(wrench[RIGHT_ARM]);
     wrench[LEFT_ARM] = applyDeadZone(wrench[LEFT_ARM]);
 
@@ -339,6 +393,30 @@ namespace yumi_experiments
     {
       ret.velocity[i] = 0.0;
     }
+
+    if (checkAbsurdVelocities(vel_eig[LEFT_ARM]) || checkAbsurdVelocities(vel_eig[LEFT_ARM])) // sometimes, I get huge spikes in the velocity readings
+    {
+      return ret;
+    }
+    
+    // check for success
+    bool success_left = true, success_right = true;
+
+    if (use_left_)
+    {
+      success_left = checkSuccess(desired_pose_[LEFT_ARM], pose[LEFT_ARM]);
+    }
+
+    if (use_right_)
+    {
+      success_right = checkSuccess(desired_pose_[RIGHT_ARM], pose[RIGHT_ARM]);
+    }
+
+    if (success_left && success_right)
+    {
+      action_server_->setSucceeded();
+    }
+
 
     if (use_left_)
     {
@@ -399,6 +477,11 @@ namespace yumi_experiments
       kdl_manager_->getJointState(eef_name_[RIGHT_ARM], q.data, q_dot.data, ret);
     }
 
+    action_server_->publishFeedback(feedback_);
+    feedback_.linear_error_norm.clear();
+    feedback_.roll_error.clear();
+    feedback_.pitch_error.clear();
+    feedback_.yaw_error.clear();
     return ret;
   }
 

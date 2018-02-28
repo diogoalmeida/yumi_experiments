@@ -77,6 +77,21 @@ namespace yumi_experiments
     **/
     Vector6d saturateVel(const Vector6d &vel) const;
 
+    /**
+      Checks if the cartesian error is bellow specified thresholds.
+
+      @param desired_pose Target pose
+      @param current_pose Measured pose
+      @return True is the error between poses is below the linear and angular thresholds, false otherwise.
+    **/
+    bool checkSuccess(const Eigen::Affine3d &desired_pose, const KDL::Frame &current_pose);
+
+    /**
+      Detects when a cartesian velocity is bigger than what could ever
+      be expected.
+    **/
+    bool checkAbsurdVelocities(const Vector6d &velocity) const;
+
     ros::NodeHandle nh_;
     std::shared_ptr<generic_control_toolbox::KDLManager> kdl_manager_;
     std::vector<std::string> eef_name_;
@@ -85,7 +100,7 @@ namespace yumi_experiments
     Eigen::Matrix<double, 6, 6> B_, K_d_;
     Eigen::MatrixXd K_p_;
     bool use_right_, use_left_;
-    double force_dead_zone_, torque_dead_zone_, pos_offset_, max_lin_acc_, max_ang_acc_, max_lin_vel_, max_ang_vel_;
+    double force_dead_zone_, torque_dead_zone_, pos_offset_, max_lin_acc_, max_ang_acc_, max_lin_vel_, max_ang_vel_, linear_threshold_, angular_threshold_;
     generic_control_toolbox::WrenchManager wrench_manager_;
     generic_control_toolbox::MatrixParser matrix_parser_;
   };

@@ -5,3 +5,7 @@ geometry_msgs/PoseStamped desired_left_pose
 ---
 
 ---
+float64[] linear_error_norm
+float64[] roll_error
+float64[] pitch_error
+float64[] yaw_error
