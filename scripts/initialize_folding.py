@@ -2,7 +2,7 @@
 import rospy
 import sys
 from yumi_interface.msg import MoveAction, MoveGoal
-from yumi_experiments.msg import RunFoldingAction, ApproachControllerAction, ApproachControllerGoal
+from yumi_experiments.msg import RunFoldingAction, ApproachControllerAction, ApproachControllerGoal, AdmittanceControllerGoal, AdmittanceControllerAction
 from folding_assembly_controller.msg import FoldingControllerAction, FoldingControllerGoal
 from std_msgs.msg import Bool
 from std_srvs.srv import Empty
@@ -65,16 +65,14 @@ if __name__ == "__main__":
 
     force_torque_reset_services = rospy.get_param("~ft_reset_services", [])
 
-    joint_state = {}
-
-    if rospy.has_param("~right_arm/joint_state") and rospy.has_param("~left_arm/joint_state"):  # TODO: Allow poses
-        joint_state["right"] = rospy.get_param("~right_arm/joint_state")
-        joint_state["left"] = rospy.get_param("~left_arm/joint_state")
+    if rospy.has_param("~right_arm/pose") and rospy.has_param("~left_arm/pose"):
+        right_pose = rospy.get_param("~right_arm/pose")
+        left_pose = rospy.get_param("~left_arm/pose")
     else:
-        rospy.logerr("Missing arm initial joint states in order to initialize experiment")
+        rospy.logerr("Missing arm initial poses in order to initialize experiment")
         sys.exit(0)
 
-    move_client = actionlib.SimpleActionClient(move_action_name, MoveAction)
+    move_client = actionlib.SimpleActionClient(move_action_name, AdmittanceControllerAction)
     folding_client = actionlib.SimpleActionClient(folding_action_name, FoldingControllerAction)
     approach_client = actionlib.SimpleActionClient(approach_action_name, ApproachControllerAction)
     stop_folding_pub = rospy.Publisher("/folding/disable", Bool, queue_size=1)
@@ -101,28 +99,32 @@ if __name__ == "__main__":
 
         goal = experiment_server.accept_new_goal()
         rospy.loginfo("Initializing folding experiment...")
-        stop_msg.data = True
-        stop_folding_pub.publish(stop_msg)
+        # stop_msg.data = True
+        # stop_folding_pub.publish(stop_msg)
 
         while experiment_server.is_active():
-            right_arm_move_goal = MoveGoal()
-            right_arm_move_goal.arm = "left"
-            right_arm_move_goal.use_pose_target = False
-            right_arm_move_goal.joint_target = joint_state["left"]
+            arms_move_goal = AdmittanceControllerGoal()
+            arms_move_goal.use_right = True
+            arms_move_goal.use_left = True
+            arms_move_goal.desired_right_pose.pose.position.x = right_pose[0]
+            arms_move_goal.desired_right_pose.pose.position.y = right_pose[1]
+            arms_move_goal.desired_right_pose.pose.position.z = right_pose[2]
+            arms_move_goal.desired_right_pose.pose.orientation.x = right_pose[3]
+            arms_move_goal.desired_right_pose.pose.orientation.y = right_pose[4]
+            arms_move_goal.desired_right_pose.pose.orientation.z = right_pose[5]
+            arms_move_goal.desired_right_pose.pose.orientation.w = right_pose[6]
 
-            success = monitor_action_goal(experiment_server, move_client, right_arm_move_goal, action_name = move_action_name)
+            arms_move_goal.desired_left_pose.pose.position.x = left_pose[0]
+            arms_move_goal.desired_left_pose.pose.position.y = left_pose[1]
+            arms_move_goal.desired_left_pose.pose.position.z = left_pose[2]
+            arms_move_goal.desired_left_pose.pose.orientation.x = left_pose[3]
+            arms_move_goal.desired_left_pose.pose.orientation.y = left_pose[4]
+            arms_move_goal.desired_left_pose.pose.orientation.z = left_pose[5]
+            arms_move_goal.desired_left_pose.pose.orientation.w = left_pose[6]
+
+            success = monitor_action_goal(experiment_server, move_client, arms_move_goal, action_name = move_action_name)
 
             if not success:  # Something went wrong
-                break
-
-            left_arm_move_goal = MoveGoal()
-            left_arm_move_goal.arm = "right"
-            left_arm_move_goal.use_pose_target = False
-            left_arm_move_goal.joint_target = joint_state["right"]
-
-            success = monitor_action_goal(experiment_server, move_client, left_arm_move_goal, action_name = move_action_name)
-
-            if not success:
                 break
 
             for service in force_torque_reset_services: # Zero ft sensors
@@ -133,8 +135,8 @@ if __name__ == "__main__":
                     print "Service call failed: %s"%e
 
             rospy.sleep(0.5)
-            stop_msg.data = False
-            stop_folding_pub.publish(stop_msg)
+            # stop_msg.data = False
+            # stop_folding_pub.publish(stop_msg)
             approach_move_goal = ApproachControllerGoal()
             approach_move_goal.desired_twist.header.frame_id = approach_frame
             approach_move_goal.desired_twist.twist.linear.z = 0.01

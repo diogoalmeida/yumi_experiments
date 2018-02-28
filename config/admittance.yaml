@@ -20,8 +20,8 @@ kdl_manager:
   max_tf_attempts: 10
 
 admittance:
-  settling_time: 5
-  damping_ratio: 1.7
+  settling_time: 6
+  damping_ratio: 1.0
   K_p:
     data: [20, 0, 0, 0, 0, 0,
            0, 20, 0, 0, 0, 0,
