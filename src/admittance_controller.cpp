@@ -179,18 +179,18 @@ namespace yumi_experiments
 
     for (unsigned int i = 0; i < 7; i++)
     {
-      if (fabs(desired_q_dot(i)) > q_vel_lim(i))
+      if (fabs(desired_q_dot(i)) > 0.1*q_vel_lim(i))
       {
         triggered = true;
         ROS_WARN("Commanded velocity in joint %u of chain %s higher than limit", i, eef.c_str());
 
         if (desired_q_dot(i) > 0)
         {
-          desired_q_dot(i) = q_vel_lim(i);
+          desired_q_dot(i) = 0.1*q_vel_lim(i);
         }
         else
         {
-          desired_q_dot(i) = -q_vel_lim(i);
+          desired_q_dot(i) = -0.1*q_vel_lim(i);
         }
       }
 
@@ -394,11 +394,11 @@ namespace yumi_experiments
       ret.velocity[i] = 0.0;
     }
 
-    if (checkAbsurdVelocities(vel_eig[LEFT_ARM]) || checkAbsurdVelocities(vel_eig[LEFT_ARM])) // sometimes, I get huge spikes in the velocity readings
-    {
-      return ret;
-    }
-    
+    // if (checkAbsurdVelocities(vel_eig[LEFT_ARM]) || checkAbsurdVelocities(vel_eig[LEFT_ARM])) // sometimes, I get huge spikes in the velocity readings
+    // {
+    //   return ret;
+    // }
+
     // check for success
     bool success_left = true, success_right = true;
 
@@ -422,7 +422,7 @@ namespace yumi_experiments
     {
       Vector6d commanded_vel;
 
-      acc[LEFT_ARM] = computeCartesianAccelerations(vel_eig[LEFT_ARM], pose[LEFT_ARM], desired_pose_[LEFT_ARM], wrench[LEFT_ARM]);
+      acc[LEFT_ARM] = computeCartesianAccelerations(cart_vel_[LEFT_ARM], pose[LEFT_ARM], desired_pose_[LEFT_ARM], wrench[LEFT_ARM]);
       acc[LEFT_ARM] = saturateAcc(acc[LEFT_ARM]);
 
       cart_vel_[LEFT_ARM] += acc[LEFT_ARM]*dt.toSec();
@@ -452,7 +452,7 @@ namespace yumi_experiments
       Vector6d commanded_vel;
       std::vector<bool> triggered_joints;
 
-      acc[RIGHT_ARM] = computeCartesianAccelerations(vel_eig[RIGHT_ARM], pose[RIGHT_ARM], desired_pose_[RIGHT_ARM], wrench[RIGHT_ARM]);
+      acc[RIGHT_ARM] = computeCartesianAccelerations(cart_vel_[RIGHT_ARM], pose[RIGHT_ARM], desired_pose_[RIGHT_ARM], wrench[RIGHT_ARM]);
       acc[RIGHT_ARM] = saturateAcc(acc[RIGHT_ARM]);
 
       cart_vel_[RIGHT_ARM] += acc[RIGHT_ARM]*dt.toSec();
