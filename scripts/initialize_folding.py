@@ -9,7 +9,7 @@ from std_srvs.srv import Empty
 import actionlib
 
 
-def monitor_action_goal(action_server, action_client, action_goal, action_name = "current action"):
+def monitor_action_goal(action_server, action_client, action_goal, action_name = "current action", time_limit = float("inf")):
     """Send and monitor an action goal to a given action client.
 
        The monitor will return in case of the client reporting success, preemption or
@@ -18,7 +18,14 @@ def monitor_action_goal(action_server, action_client, action_goal, action_name =
     success = False
     rospy.loginfo("Sending goal to " + action_name)
     action_client.send_goal(action_goal)
+    init_time = rospy.Time.now()
     while action_server.is_active():
+       if (rospy.Time.now() - init_time).to_sec() > time_limit:
+           rospy.logwarn("Timeout of request, preempting but continuing")
+           action_client.cancel_goal()
+           success = True
+           break
+
        if action_server.is_preempt_requested():
            rospy.logwarn("Preempting " + action_name)
            action_client.cancel_goal()
@@ -122,7 +129,7 @@ if __name__ == "__main__":
             arms_move_goal.desired_left_pose.pose.orientation.z = left_pose[5]
             arms_move_goal.desired_left_pose.pose.orientation.w = left_pose[6]
 
-            success = monitor_action_goal(experiment_server, move_client, arms_move_goal, action_name = move_action_name)
+            success = monitor_action_goal(experiment_server, move_client, arms_move_goal, action_name = move_action_name, time_limit = 30.)
 
             if not success:  # Something went wrong
                 break

@@ -20,18 +20,18 @@ kdl_manager:
   max_tf_attempts: 10
 
 admittance:
-  settling_time: 2
-  damping_ratio: 1.1
+  settling_time: 1.0
+  damping_ratio: 2.0
   K_p:
-    data: [100, 0, 0, 0, 0, 0,
-           0, 100, 0, 0, 0, 0,
-           0, 0, 100, 0, 0, 0,
-           0, 0, 0, 0.4, 0, 0,
-           0, 0, 0, 0, 0.4, 0,
-           0, 0, 0, 0, 0, 0.4]
+    data: [300, 0, 0, 0, 0, 0,
+           0, 300, 0, 0, 0, 0,
+           0, 0, 300, 0, 0, 0,
+           0, 0, 0, 8.0, 0, 0,
+           0, 0, 0, 0, 8.0, 0,
+           0, 0, 0, 0, 0, 8.0]
 
-  force_dead_zone: 1
-  torque_dead_zone: 0.2
+  force_dead_zone: 0.75
+  torque_dead_zone: 0.1
   position_offset: 0.1
   max_linear_acceleration: 1.1
   max_linear_velocity: 0.05
