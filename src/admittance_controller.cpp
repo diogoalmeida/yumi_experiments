@@ -131,7 +131,7 @@ namespace yumi_experiments
         return false;
       }
 
-      if(!generic_control_toolbox::setKDLManager(info, kdl_manager_))
+      if(!generic_control_toolbox::setKDLManagerNso(info, kdl_manager_))
       {
         return false;
       }
