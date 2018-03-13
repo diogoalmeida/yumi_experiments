@@ -1,11 +1,18 @@
 action_name: approach
 kinematic_chain_base_link: yumi_base_link
 approach_arm:
-  kdl_eef_frame: yumi_link_7_l
-  gripping_frame: l_gripping_point
+  kdl_eef_frame: yumi_link_7_r
+  gripping_frame: r_gripping_point
   has_ft_sensor: true
-  sensor_frame: optodaq_l_sensor_link
-  sensor_topic: /yumi/optodaq_l_compensated
+  sensor_frame: optodaq_r_sensor_link
+  sensor_topic: /yumi/optodaq_r_compensated
+  sensor_calib:
+    data: [1.0, 0, 0, 0, 0, 0,
+           0, 1.0, 0, 0, 0, 0,
+           0, 0, 1.0, 0, 0, 0,
+           0, 0, 0, 1.0, 0, 0,
+           0, 0, 0, 0, 1.0, 0,
+           0, 0, 0, 0, 0, 1.0]
 
 kdl_manager:
   eps: 0.001
