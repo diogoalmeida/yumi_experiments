@@ -47,6 +47,12 @@ namespace yumi_experiments
       return false;
     }
 
+    if (!nh_.getParam("calib/k_f", K_force_))
+    {
+      ROS_ERROR("Missing calib/k_f");
+      return false;
+    }
+
     if (!setDirVars(t1_, t1_sign_, t1))
     {
       ROS_ERROR("Invalid directions for t1");
@@ -92,7 +98,7 @@ namespace yumi_experiments
 
     if (s == "-x")
     {
-      dir = 'x'
+      dir = 'x';
       sign = -1;
     }
 
@@ -285,7 +291,8 @@ namespace yumi_experiments
     KDL::JntArray qdot(7);
     kdl_manager_->getGrippingVelIK(probe_arm_eef_, current_state, probe_twist, qdot);
     kdl_manager_->getJointState(probe_arm_eef_, qdot.data, ret);
-
+    action_server_->publishFeedback(feedback_);
+        
     return ret;
   }
 }
