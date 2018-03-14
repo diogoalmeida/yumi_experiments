@@ -35,12 +35,21 @@ namespace yumi_experiments
     bool init();
     void resetController();
     bool setArm(const std::string &arm_name, std::string &eef_name, std::string &sensor_frame);
+    /**
+      Compute the desired probe twist given the configured probe trajectory.
+    **/
+    KDL::Twist computeCommandTwist(const KDL::Frame &p_probe, const KDL::Frame &p_case, const KDL::Wrench &wrench_probe) const;
+    Eigen::Vector3d getDir(const char dir, const int sign, const Eigen::Affine3d &p) const;
 
     ros::NodeHandle nh_;
     std::shared_ptr<generic_control_toolbox::KDLManager> kdl_manager_;
     generic_control_toolbox::WrenchManager wrench_manager_;
     generic_control_toolbox::MatrixParser matrix_parser_;
     std::string case_arm_eef_, probe_arm_eef_, case_sensor_frame_, probe_sensor_frame_;
+    double probe_tip_offset_, time_corner1_, time_corner2_, time_corner3_, time_corner4_, force_1_, force_2_, force_3_, force_4_, K_force_;
+    char f_, t1_, t2_;
+    int t1_sign_, t2_sign_, f_sign_;
+    ros::Time init_time_;
   };
 }
 #endif

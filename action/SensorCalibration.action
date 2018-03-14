@@ -1,3 +1,13 @@
+float64 time_1
+float64 time_2
+float64 time_3
+float64 time_4
+float64 force_1
+float64 force_2
+float64 force_3
+float64 force_4
 ---
 
 ---
+geometry_msgs/WrenchStamped wrench_case_sensor
+geometry_msgs/PointStamped probe_tip
