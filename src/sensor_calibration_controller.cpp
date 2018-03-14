@@ -28,6 +28,43 @@ namespace yumi_experiments
       return false;
     }
 
+    std::string t1, t2, f;
+    if (!nh_.getParam("calib/t1", t1))
+    {
+      ROS_ERROR("Missing calib/t1");
+      return false;
+    }
+
+    if (!nh_.getParam("calib/t2", t2))
+    {
+      ROS_ERROR("Missing calib/t2");
+      return false;
+    }
+
+    if (!nh_.getParam("calib/f", f))
+    {
+      ROS_ERROR("Missing calib/f");
+      return false;
+    }
+
+    if (!setDirVars(t1_, t1_sign_, t1))
+    {
+      ROS_ERROR("Invalid directions for t1");
+      return false;
+    }
+
+    if (!setDirVars(t2_, t2_sign_, t2))
+    {
+      ROS_ERROR("Invalid directions for t2");
+      return false;
+    }
+
+    if (!setDirVars(f_, f_sign_, f))
+    {
+      ROS_ERROR("Invalid directions for f");
+      return false;
+    }
+
     kdl_manager_ = std::make_shared<generic_control_toolbox::KDLManager>(base_frame);
 
     if (!setArm("probe_arm", probe_arm_eef_, probe_sensor_frame_))
@@ -36,6 +73,54 @@ namespace yumi_experiments
     }
 
     if (!setArm("case_arm", case_arm_eef_, case_sensor_frame_))
+    {
+      return false;
+    }
+
+    return true;
+  }
+
+  bool SensorCalibrationController::setDirVars(char &dir, int &sign, const std::string &s) const
+  {
+    sign = 0;
+
+    if (s == "x")
+    {
+      dir = 'x';
+      sign = 1;
+    }
+
+    if (s == "-x")
+    {
+      dir = 'x'
+      sign = -1;
+    }
+
+    if (s == "y")
+    {
+      dir = 'y';
+      sign = 1;
+    }
+
+    if (s == "-y")
+    {
+      dir = 'y';
+      sign = -1;
+    }
+
+    if (s == "z")
+    {
+      dir = 'z';
+      sign = 1;
+    }
+
+    if (s == "-z")
+    {
+      dir = 'z';
+      sign = -1;
+    }
+
+    if (sign == 0)
     {
       return false;
     }

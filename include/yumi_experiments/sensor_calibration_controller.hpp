@@ -40,6 +40,7 @@ namespace yumi_experiments
     **/
     KDL::Twist computeCommandTwist(const KDL::Frame &p_probe, const KDL::Frame &p_case, const KDL::Wrench &wrench_probe) const;
     Eigen::Vector3d getDir(const char dir, const int sign, const Eigen::Affine3d &p) const;
+    bool setDirVars(char &dir, int &sign, const std::string &s) const;
 
     ros::NodeHandle nh_;
     std::shared_ptr<generic_control_toolbox::KDLManager> kdl_manager_;
