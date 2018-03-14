@@ -1,0 +1,40 @@
+<launch>
+  <arg name="debug" default="false"/>
+
+  <group unless="$(arg debug)">
+    <node name="approach_controller" type="approach_action_node" pkg="yumi_experiments" output="screen">
+      <rosparam command="load" file="$(find yumi_experiments)/config/approach.yaml"/>
+      <remap from="joint_states" to="yumi/joint_states"/>
+      <remap from="joint_command" to="yumi/joint_command"/>
+    </node>
+    <node name="admittance_controller" type="admittance_action_node" pkg="yumi_experiments" output="screen">
+      <rosparam command="load" file="$(find yumi_experiments)/config/admittance.yaml"/>
+      <remap from="joint_states" to="yumi/joint_states"/>
+      <remap from="joint_command" to="yumi/joint_command"/>
+    </node>
+    <node name="calibration_controller" type="controller_action_node" pkg="yumi_experiments" output="screen">
+      <rosparam command="load" file="$(find yumi_experiments)/config/calibration.yaml"/>
+      <remap from="joint_states" to="yumi/joint_states"/>
+      <remap from="joint_command" to="yumi/joint_command"/>
+    </node>
+  </group>
+
+  <group if="$(arg debug)">
+    <env name="ROSCONSOLE_CONFIG_FILE" value="$(find yumi_experiments)/config/logger.config"/>
+    <node name="approach_controller" type="approach_action_node" pkg="yumi_experiments" output="screen" launch-prefix="xterm -e gdb -ex run --args">
+      <rosparam command="load" file="$(find yumi_experiments)/config/approach.yaml"/>
+      <remap from="joint_states" to="yumi/joint_states"/>
+      <remap from="joint_command" to="yumi/joint_command"/>
+    </node>
+    <node name="admittance_controller" type="admittance_action_node" pkg="yumi_experiments" output="screen" launch-prefix="xterm -e gdb -ex run --args">
+      <rosparam command="load" file="$(find yumi_experiments)/config/admittance.yaml"/>
+      <remap from="joint_states" to="yumi/joint_states"/>
+      <remap from="joint_command" to="yumi/joint_command"/>
+    </node>
+    <node name="calibration_controller" type="controller_action_node" pkg="yumi_experiments" output="screen" launch-prefix="xterm -e gdb -ex run --args">
+      <rosparam command="load" file="$(find yumi_experiments)/config/calibration.yaml"/>
+      <remap from="joint_states" to="yumi/joint_states"/>
+      <remap from="joint_command" to="yumi/joint_command"/>
+    </node>
+  </group>
+</launch>
