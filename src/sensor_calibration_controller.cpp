@@ -206,7 +206,7 @@ namespace yumi_experiments
   KDL::Twist SensorCalibrationController::computeCommandTwist(const KDL::Frame &p_probe, const KDL::Frame &p_case, const KDL::Wrench &wrench_probe)
   {
     Eigen::Affine3d probe_eig, case_eig;
-    Eigen::Vector3d trans_dir, force_dir;
+    Eigen::Vector3d trans_dir, force_dir, rot_dir;
     Eigen::Matrix<double, 6, 1> twist_eig, wrench_probe_eig;
     double vd = 0.0, fd = 0.0;
 
@@ -220,7 +220,17 @@ namespace yumi_experiments
     {
       if ((ros::Time::now() - init_time_).toSec() < compare_time_)
       {
-        trans_dir = getDir(motion_dirs_[current_traj_step_], motion_dirs_sign_[current_traj_step_], case_eig);
+        if (is_linear_[current_traj_step_])
+        {
+          trans_dir = getDir(motion_dirs_[current_traj_step_], motion_dirs_sign_[current_traj_step_], case_eig);
+          rot_dir = Eigen::Vector3d::Zero();
+        }
+        else
+        {
+          trans_dir = Eigen::Vector3d::Zero();
+          rot_dir = getDir(motion_dirs_[current_traj_step_], motion_dirs_sign_[current_traj_step_], case_eig);
+        }
+
         fd = forces_[current_traj_step_];
       }
       else
