@@ -53,6 +53,12 @@ namespace yumi_experiments
       return false;
     }
 
+    if (!nh_.getParam("calib/probe_tip_offset", probe_tip_offset_))
+    {
+      ROS_ERROR("Missing calib/probe_tip_offset");
+      return false;
+    }
+
     if (!setDirVars(f_dir_, f_dir_sign_, f))
     {
       ROS_ERROR("Invalid directions for f");
@@ -257,8 +263,15 @@ namespace yumi_experiments
     }
 
     twist_eig.block<3,1>(3,0) = wd_*rot_dir;
-    twist_eig.block<3,1>(0,0) = vd_*trans_dir + (probe_tip_offset_*probe_eig.translation()).cross(twist_eig.block<3,1>(3,0)) + K_force_*(fd*force_dir - wrench_probe_eig.block<3,1>(0,0)); // desired twist in the case frame
+    Eigen::Vector3d r = probe_eig.matrix().block<3,3>(0,0).transpose()*Eigen::Vector3d::UnitZ()*probe_tip_offset_;
+    twist_eig.block<3,1>(0,0) = vd_*trans_dir + (wd_*rot_dir).cross(r) + K_force_*(fd*force_dir - wrench_probe_eig.block<3,1>(0,0)); // desired twist of the gripping point in the world frame
     KDL::Twist ret;
+    // KDL::Frame p_tip = p_probe.Inverse();
+    // p_tip.p.z(p_tip.p.z() + probe_tip_offset_);
+    // tf::twistEigenToKDL(twist_eig, ret);
+    // ret = p_tip*ret;
+    // ret = p_probe*(p_tip.M.Inverse()*ret);
+    // tf::twistKDLToEigen(ret, twist_eig);
     tf::twistEigenToKDL(twist_eig, ret);
 
     return ret;

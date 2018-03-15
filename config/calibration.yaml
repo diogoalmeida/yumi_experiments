@@ -44,3 +44,4 @@ calib:
   k_f: 0.01
   vd: 0.02
   wd: 0.05
+  probe_tip_offset: 0.23
