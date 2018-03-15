@@ -41,6 +41,12 @@ namespace yumi_experiments
       return false;
     }
 
+    if (!nh_.getParam("calib/wd", wd_))
+    {
+      ROS_ERROR("Missing calib/wd");
+      return false;
+    }
+
     if (!nh_.getParam("calib/k_f", K_force_))
     {
       ROS_ERROR("Missing calib/k_f");
@@ -250,8 +256,8 @@ namespace yumi_experiments
       action_server_->setSucceeded();
     }
 
-    twist_eig.block<3,1>(0,0) = vd_*trans_dir + K_force_*(fd*force_dir - wrench_probe_eig.block<3,1>(0,0)); // desired twist in the case frame
-    twist_eig.block<3,1>(3,0) = Eigen::Vector3d::Zero();
+    twist_eig.block<3,1>(3,0) = wd_*rot_dir;
+    twist_eig.block<3,1>(0,0) = vd_*trans_dir + (probe_tip_offset_*probe_eig.translation()).cross(twist_eig.block<3,1>(3,0)) + K_force_*(fd*force_dir - wrench_probe_eig.block<3,1>(0,0)); // desired twist in the case frame
     KDL::Twist ret;
     tf::twistEigenToKDL(twist_eig, ret);
 
