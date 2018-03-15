@@ -17,7 +17,7 @@ probe_arm:
 
 case_arm:
   kdl_eef_frame: yumi_link_7_r
-  gripping_frame: yumi_link_7_r
+  gripping_frame: r_gripping_point
   has_ft_sensor: true
   sensor_frame: optodaq_r_sensor_link
   sensor_topic: /yumi/optodaq_r_compensated
@@ -36,9 +36,10 @@ kdl_manager:
   nso_weight: 4
 
 calib:
-  t1: "z"
-  t2: "y"
-  t3: "-z"
-  t4: "-y"
+  t1: "-z"
+  t2: "-x"
+  t3: "z"
+  t4: "x"
   f: "y"
   k_f: 0.01
+  vd: 0.02

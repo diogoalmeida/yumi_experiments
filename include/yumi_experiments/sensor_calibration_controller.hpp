@@ -51,7 +51,7 @@ namespace yumi_experiments
     std::vector<char> motion_dirs_;
     std::vector<int> motion_dirs_sign_;
     std::vector<unsigned char> is_linear_;
-    double probe_tip_offset_, K_force_, compare_time_;
+    double probe_tip_offset_, K_force_, compare_time_, vd_;
     char f_dir_;
     int f_dir_sign_;
     unsigned int current_traj_step_;
