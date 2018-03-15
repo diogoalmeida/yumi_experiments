@@ -47,7 +47,7 @@ namespace yumi_experiments
     generic_control_toolbox::WrenchManager wrench_manager_;
     generic_control_toolbox::MatrixParser matrix_parser_;
     std::string case_arm_eef_, probe_arm_eef_, case_sensor_frame_, probe_sensor_frame_;
-    double probe_tip_offset_, time_corner1_, time_corner2_, time_corner3_, time_corner4_, force_1_, force_2_, force_3_, force_4_, K_force_;
+    double probe_tip_offset_, time_corner1_, time_corner2_, time_corner3_, time_corner4_, force_1_, force_2_, force_3_, force_4_, K_force_, vd_;
     char f_, t1_, t2_;
     int t1_sign_, t2_sign_, f_sign_;
     ros::Time init_time_;

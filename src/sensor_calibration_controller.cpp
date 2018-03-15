@@ -47,6 +47,12 @@ namespace yumi_experiments
       return false;
     }
 
+    if (!nh_.getParam("calib/vd", vd_))
+    {
+      ROS_ERROR("Missing calib/vd");
+      return false;
+    }
+
     if (!nh_.getParam("calib/k_f", K_force_))
     {
       ROS_ERROR("Missing calib/k_f");
@@ -205,7 +211,7 @@ namespace yumi_experiments
     Eigen::Affine3d probe_eig, case_eig;
     Eigen::Vector3d trans_dir, force_dir;
     Eigen::Matrix<double, 6, 1> twist_eig, wrench_probe_eig;
-    double vd = 0.0, fd = 0.0;
+    double fd = 0.0;
 
     tf::transformKDLToEigen(p_probe, probe_eig);
     tf::transformKDLToEigen(p_case, case_eig);
@@ -216,27 +222,31 @@ namespace yumi_experiments
     // 'probing logic' for hitting the case corners
     if ((ros::Time::now() - init_time_).toSec() < time_corner1_)
     {
+      ROS_INFO_ONCE("Within time 1");
       trans_dir = getDir(t1_, t1_sign_, case_eig);
       fd = force_1_;
     }
     else
     {
-      if ((ros::Time::now() - init_time_).toSec() < time_corner2_)
+      if ((ros::Time::now() - init_time_).toSec() < time_corner1_ + time_corner2_)
       {
+        ROS_INFO_ONCE("Within time 2");
         trans_dir = getDir(t2_, t2_sign_, case_eig);
         fd = force_2_;
       }
       else
       {
-        if ((ros::Time::now() - init_time_).toSec() < time_corner3_)
+        if ((ros::Time::now() - init_time_).toSec() < time_corner1_ + time_corner2_ + time_corner3_)
         {
+          ROS_INFO_ONCE("Within time 3");
           trans_dir = -getDir(t1_, t1_sign_, case_eig);
           fd = force_3_;
         }
         else
         {
-          if ((ros::Time::now() - init_time_).toSec() < time_corner4_)
+          if ((ros::Time::now() - init_time_).toSec() < time_corner1_ + time_corner2_ + time_corner3_ + time_corner4_)
           {
+            ROS_INFO_ONCE("Within time 4");
             trans_dir = -getDir(t2_, t2_sign_, case_eig);
             fd = force_4_;
           }
@@ -248,11 +258,10 @@ namespace yumi_experiments
       }
     }
 
-    twist_eig.block<3,1>(0,0) = vd*trans_dir + K_force_*(fd*force_dir - wrench_probe_eig.block<3,1>(0,0)); // desired twist in the case frame
+    twist_eig.block<3,1>(0,0) = vd_*trans_dir + K_force_*(fd*force_dir - wrench_probe_eig.block<3,1>(0,0)); // desired twist in the case frame
     twist_eig.block<3,1>(3,0) = Eigen::Vector3d::Zero();
     KDL::Twist ret;
     tf::twistEigenToKDL(twist_eig, ret);
-    ret = p_case.M*ret;
 
     return ret;
   }
@@ -285,14 +294,19 @@ namespace yumi_experiments
     tf::wrenchEigenToMsg(wrench_case_sensor, feedback_.wrench_case_sensor.wrench);
     tf::pointEigenToMsg(probe_tip_eig.translation(), feedback_.probe_tip.point);
 
+    for (unsigned int i = 0; i < ret.velocity.size(); i++)
+    {
+      ret.velocity[i] = 0.0;
+    }
+
     KDL::Wrench wrench_probe_kdl;
     tf::wrenchEigenToKDL(wrench_probe_grip, wrench_probe_kdl);
     KDL::Twist probe_twist = computeCommandTwist(p_grip_probe, p_grip_case, wrench_probe_kdl);
     KDL::JntArray qdot(7);
-    kdl_manager_->getGrippingVelIK(probe_arm_eef_, current_state, probe_twist, qdot);
+    kdl_manager_->getVelIK(probe_arm_eef_, current_state, probe_twist, qdot);
     kdl_manager_->getJointState(probe_arm_eef_, qdot.data, ret);
     action_server_->publishFeedback(feedback_);
-        
+
     return ret;
   }
 }

@@ -1,6 +1,14 @@
 <launch>
   <arg name="debug" default="false"/>
 
+  <node name="calibration_initialization" type="initialize_calibration.py" pkg="yumi_experiments" output="screen">
+    <rosparam command="load" file="$(find yumi_experiments)/config/calibration_init.yaml"/>
+  </node>
+
+  <node name="joint_mux" pkg="folding_assembly_controller" type="joint_command_mux.py" output="screen" required="true">
+      <rosparam command="load" file="$(find folding_assembly_controller)/config/config_mux.yaml"/>
+  </node>
+
   <group unless="$(arg debug)">
     <node name="approach_controller" type="approach_action_node" pkg="yumi_experiments" output="screen">
       <rosparam command="load" file="$(find yumi_experiments)/config/approach.yaml"/>
@@ -12,7 +20,7 @@
       <remap from="joint_states" to="yumi/joint_states"/>
       <remap from="joint_command" to="yumi/joint_command"/>
     </node>
-    <node name="calibration_controller" type="controller_action_node" pkg="yumi_experiments" output="screen">
+    <node name="calibration_controller" type="sensor_calibration_action_node" pkg="yumi_experiments" output="screen">
       <rosparam command="load" file="$(find yumi_experiments)/config/calibration.yaml"/>
       <remap from="joint_states" to="yumi/joint_states"/>
       <remap from="joint_command" to="yumi/joint_command"/>
@@ -31,10 +39,14 @@
       <remap from="joint_states" to="yumi/joint_states"/>
       <remap from="joint_command" to="yumi/joint_command"/>
     </node>
-    <node name="calibration_controller" type="controller_action_node" pkg="yumi_experiments" output="screen" launch-prefix="xterm -e gdb -ex run --args">
+    <node name="calibration_controller" type="sensor_calibration_action_node" pkg="yumi_experiments" output="screen" launch-prefix="xterm -e gdb -ex run --args">
       <rosparam command="load" file="$(find yumi_experiments)/config/calibration.yaml"/>
       <remap from="joint_states" to="yumi/joint_states"/>
       <remap from="joint_command" to="yumi/joint_command"/>
     </node>
   </group>
+
+  <node pkg="tf" type="static_transform_publisher" name="r_grip_broadcaster" args="0 0.0 0.156 0 0 0 1 gripper_r_base r_gripping_point 50" />
+  <node pkg="tf" type="static_transform_publisher" name="l_grip_broadcaster" args="0 0.0 0.156 0 0 0 1 gripper_l_base l_gripping_point 50" />
+  <node pkg="tf" type="static_transform_publisher" name="pc_ground_broadcaster" args="0 0.0 0.21 0 0 0 1 yumi_link_7_l pc_ground 50" />
 </launch>
