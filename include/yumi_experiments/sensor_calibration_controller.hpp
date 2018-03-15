@@ -38,7 +38,7 @@ namespace yumi_experiments
     /**
       Compute the desired probe twist given the configured probe trajectory.
     **/
-    KDL::Twist computeCommandTwist(const KDL::Frame &p_probe, const KDL::Frame &p_case, const KDL::Wrench &wrench_probe) const;
+    KDL::Twist computeCommandTwist(const KDL::Frame &p_probe, const KDL::Frame &p_case, const KDL::Wrench &wrench_probe);
     Eigen::Vector3d getDir(const char dir, const int sign, const Eigen::Affine3d &p) const;
     bool setDirVars(char &dir, int &sign, const std::string &s) const;
 
@@ -47,9 +47,14 @@ namespace yumi_experiments
     generic_control_toolbox::WrenchManager wrench_manager_;
     generic_control_toolbox::MatrixParser matrix_parser_;
     std::string case_arm_eef_, probe_arm_eef_, case_sensor_frame_, probe_sensor_frame_;
-    double probe_tip_offset_, time_corner1_, time_corner2_, time_corner3_, time_corner4_, force_1_, force_2_, force_3_, force_4_, K_force_, vd_;
-    char f_, t1_, t2_;
-    int t1_sign_, t2_sign_, f_sign_;
+    std::vector<double> times_, forces_;
+    std::vector<char> motion_dirs_;
+    std::vector<int> motion_dirs_sign_;
+    std::vector<unsigned char> is_linear_;
+    double probe_tip_offset_, K_force_, compare_time_, vd_;
+    char f_dir_;
+    int f_dir_sign_;
+    unsigned int current_traj_step_;
     ros::Time init_time_;
   };
 }

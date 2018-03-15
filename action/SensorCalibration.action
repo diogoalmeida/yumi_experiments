@@ -1,11 +1,7 @@
-float64 time_1
-float64 time_2
-float64 time_3
-float64 time_4
-float64 force_1
-float64 force_2
-float64 force_3
-float64 force_4
+float64[] times
+float64[] forces
+bool[] is_linear_motion
+string[] motion_dirs
 ---
 
 ---
