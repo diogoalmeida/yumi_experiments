@@ -28,19 +28,7 @@ namespace yumi_experiments
       return false;
     }
 
-    std::string t1, t2, f;
-    if (!nh_.getParam("calib/t1", t1))
-    {
-      ROS_ERROR("Missing calib/t1");
-      return false;
-    }
-
-    if (!nh_.getParam("calib/t2", t2))
-    {
-      ROS_ERROR("Missing calib/t2");
-      return false;
-    }
-
+    std::string f;
     if (!nh_.getParam("calib/f", f))
     {
       ROS_ERROR("Missing calib/f");
@@ -53,19 +41,7 @@ namespace yumi_experiments
       return false;
     }
 
-    if (!setDirVars(t1_, t1_sign_, t1))
-    {
-      ROS_ERROR("Invalid directions for t1");
-      return false;
-    }
-
-    if (!setDirVars(t2_, t2_sign_, t2))
-    {
-      ROS_ERROR("Invalid directions for t2");
-      return false;
-    }
-
-    if (!setDirVars(f_, f_sign_, f))
+    if (!setDirVars(f_dir_, f_dir_sign_, f))
     {
       ROS_ERROR("Invalid directions for f");
       return false;
@@ -161,15 +137,42 @@ namespace yumi_experiments
 
   bool SensorCalibrationController::parseGoal(boost::shared_ptr<const SensorCalibrationGoal> goal)
   {
-    time_corner1_ = goal->time_1;
-    time_corner2_ = goal->time_2;
-    time_corner3_ = goal->time_3;
-    time_corner4_ = goal->time_4;
-    force_1_ = goal->force_1;
-    force_2_ = goal->force_2;
-    force_3_ = goal->force_3;
-    force_4_ = goal->force_4;
+    times_ = goal->times;
+    forces_ = goal->forces;
+    is_linear_ = goal->is_linear_motion;
+
+    motion_dirs_.clear();
+    motion_dirs_sign_.clear();
+    char dir;
+    int sign;
+    for (unsigned int i = 0; i < goal->motion_dirs.size(); i++)
+    {
+      if(!setDirVars(dir, sign, goal->motion_dirs[i]))
+      {
+        ROS_ERROR("Invalid motion dir: %s", goal->motion_dirs[i].c_str());
+        return false;
+      }
+
+      motion_dirs_.push_back(dir);
+      motion_dirs_sign_.push_back(sign);
+    }
+
+    unsigned int dim = times_.size();
+    if (forces_.size() != dim || is_linear_.size() != dim || motion_dirs_.size() != dim || motion_dirs_sign_.size() != dim)
+    {
+      ROS_ERROR("Provided goal has vectors of different length");
+      return false;
+    }
+
+    if (dim == 0)
+    {
+      ROS_ERROR("Empty vectors not allowed");
+      return false;
+    }
+
     init_time_ = ros::Time::now();
+    current_traj_step_ = 0;
+    compare_time_ = times_[0];
     return true;
   }
 
@@ -200,7 +203,7 @@ namespace yumi_experiments
     return vdir;
   }
 
-  KDL::Twist SensorCalibrationController::computeCommandTwist(const KDL::Frame &p_probe, const KDL::Frame &p_case, const KDL::Wrench &wrench_probe) const
+  KDL::Twist SensorCalibrationController::computeCommandTwist(const KDL::Frame &p_probe, const KDL::Frame &p_case, const KDL::Wrench &wrench_probe)
   {
     Eigen::Affine3d probe_eig, case_eig;
     Eigen::Vector3d trans_dir, force_dir;
@@ -211,41 +214,24 @@ namespace yumi_experiments
     tf::transformKDLToEigen(p_case, case_eig);
     tf::wrenchKDLToEigen(p_probe.M*wrench_probe, wrench_probe_eig); // wrench in the world frame, at the probe gripping point
 
-    force_dir = getDir(f_, f_sign_, case_eig);
+    force_dir = getDir(f_dir_, f_dir_sign_, case_eig);
 
-    // 'probing logic' for hitting the case corners
-    if ((ros::Time::now() - init_time_).toSec() < time_corner1_)
+    if(current_traj_step_ < times_.size())
     {
-      trans_dir = getDir(t1_, t1_sign_, case_eig);
-      fd = force_1_;
-    }
-    else
-    {
-      if ((ros::Time::now() - init_time_).toSec() < time_corner2_)
+      if ((ros::Time::now() - init_time_).toSec() < compare_time_)
       {
-        trans_dir = getDir(t2_, t2_sign_, case_eig);
-        fd = force_2_;
+        trans_dir = getDir(motion_dirs_[current_traj_step_], motion_dirs_sign_[current_traj_step_], case_eig);
+        fd = forces_[current_traj_step_];
       }
       else
       {
-        if ((ros::Time::now() - init_time_).toSec() < time_corner3_)
-        {
-          trans_dir = -getDir(t1_, t1_sign_, case_eig);
-          fd = force_3_;
-        }
-        else
-        {
-          if ((ros::Time::now() - init_time_).toSec() < time_corner4_)
-          {
-            trans_dir = -getDir(t2_, t2_sign_, case_eig);
-            fd = force_4_;
-          }
-          else
-          {
-            action_server_->setSucceeded();
-          }
-        }
+        current_traj_step_++;
+        compare_time_ += times_[current_traj_step_];
       }
+    }
+    else
+    {
+      action_server_->setSucceeded();
     }
 
     twist_eig.block<3,1>(0,0) = vd*trans_dir + K_force_*(fd*force_dir - wrench_probe_eig.block<3,1>(0,0)); // desired twist in the case frame
@@ -292,7 +278,7 @@ namespace yumi_experiments
     kdl_manager_->getGrippingVelIK(probe_arm_eef_, current_state, probe_twist, qdot);
     kdl_manager_->getJointState(probe_arm_eef_, qdot.data, ret);
     action_server_->publishFeedback(feedback_);
-        
+
     return ret;
   }
 }
