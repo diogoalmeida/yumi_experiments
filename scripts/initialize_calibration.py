@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import rospy
 import sys
-from yumi_experiments.msg import RunFoldingAction, ApproachControllerAction, ApproachControllerGoal, AdmittanceControllerGoal, AdmittanceControllerAction
+from yumi_experiments.msg import RunFoldingAction, ApproachControllerAction, ApproachControllerGoal, AdmittanceControllerGoal, AdmittanceControllerAction, RunFoldingFeedback
 from std_msgs.msg import Bool
 from std_srvs.srv import Empty
 import actionlib
@@ -87,6 +87,7 @@ if __name__ == "__main__":
     stop_msg = Bool()
     experiment_server = actionlib.SimpleActionServer("/calibration/initialize", RunFoldingAction)
     stop_folding_pub = rospy.Publisher("/folding/disable", Bool, queue_size=1)
+    feedback = RunFoldingFeedback()
 
     while not rospy.is_shutdown():
         stop_msg.data = False
@@ -102,6 +103,7 @@ if __name__ == "__main__":
         rospy.loginfo("Initializing calibration experiment...")
 
         while experiment_server.is_active():
+            feedback.current_action = "Admittance control"
             arms_move_goal = AdmittanceControllerGoal()
             arms_move_goal.use_right = True
             arms_move_goal.use_left = True
@@ -121,6 +123,7 @@ if __name__ == "__main__":
             arms_move_goal.desired_left_pose.pose.orientation.z = left_pose[5]
             arms_move_goal.desired_left_pose.pose.orientation.w = left_pose[6]
 
+            experiment_server.publish_feedback(feedback)
             success = monitor_action_goal(experiment_server, move_client, arms_move_goal, action_name = move_action_name, time_limit = 10.)
 
             if not success:  # Something went wrong
@@ -135,6 +138,8 @@ if __name__ == "__main__":
 
             rospy.sleep(0.5)
 
+            feedback.current_action = "Approach control"
+            experiment_server.publish_feedback(feedback)
             approach_move_goal = ApproachControllerGoal()
             approach_move_goal.desired_twist.header.frame_id = approach_frame
             approach_move_goal.desired_twist.twist.linear.z = 0.01
