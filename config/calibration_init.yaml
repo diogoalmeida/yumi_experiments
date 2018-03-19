@@ -2,9 +2,11 @@ move:
   action_name: /admittance_controller/admittance
 approach:
   action_name: /approach_controller/approach
-  approach_frame: yumi_link_7_r
+  approach_frame: yumi_link_7_l
 ft_reset_services: [/r_compensate_gravity/calibrate_bias, /l_compensate_gravity/calibrate_bias]
 right_arm:
-  pose: [0.473, -0.125, 0.148, 0.246, 0.663, 0.684, 0.181]
+  pose: [0.424, -0.132, 0.151, 0.214, 0.682, 0.683, 0.154] # when case arm
+  # pose: [0.473, -0.125, 0.148, 0.246, 0.663, 0.684, 0.181] # when probe arm
 left_arm:
-  pose: [0.403, 0.305, 0.173, 0.678, 0.263, 0.235, 0.644]
+  pose: [0.418, 0.315, 0.171, 0.660, 0.300, 0.279, 0.629] # when probe arm
+  # pose: [0.403, 0.305, 0.173, 0.678, 0.263, 0.235, 0.644] # when case arm

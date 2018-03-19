@@ -129,7 +129,7 @@ if __name__ == "__main__":
             arms_move_goal.desired_left_pose.pose.orientation.z = left_pose[5]
             arms_move_goal.desired_left_pose.pose.orientation.w = left_pose[6]
 
-            success = monitor_action_goal(experiment_server, move_client, arms_move_goal, action_name = move_action_name, time_limit = 30.)
+            success = monitor_action_goal(experiment_server, move_client, arms_move_goal, action_name = move_action_name, time_limit = 10.)
 
             if not success:  # Something went wrong
                 break
@@ -141,12 +141,12 @@ if __name__ == "__main__":
                 except rospy.ServiceException, e:
                     print "Service call failed: %s"%e
 
-            rospy.sleep(0.5)
+            rospy.sleep(1.5)
             # stop_msg.data = False
             # stop_folding_pub.publish(stop_msg)
             approach_move_goal = ApproachControllerGoal()
             approach_move_goal.desired_twist.header.frame_id = approach_frame
-            approach_move_goal.desired_twist.twist.linear.z = 0.01
+            approach_move_goal.desired_twist.twist.linear.z = 0.02
             approach_move_goal.max_contact_force = 1.5
 
             success = monitor_action_goal(experiment_server, approach_client, approach_move_goal, action_name = approach_action_name)

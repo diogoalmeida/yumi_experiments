@@ -158,10 +158,10 @@ if __name__ == "__main__":
             feedback.current_action = "Calibration controller"
             experiment_server.publish_feedback(feedback)
             calibrate_goal = SensorCalibrationGoal()
-            calibrate_goal.times =            [10,    7,    6,    4,      4,    5,  1.5, 10,   5,   4]
-            calibrate_goal.motion_dirs =      ["-z", "-z", "-x", "z",  "-z", "-x", "x", "z", "x", "-z"]
-            calibrate_goal.is_linear_motion = [  1,    0,    1,   1,     0,    1,   1,   0,   1,    1]
-            calibrate_goal.forces =           [-1, -1 ,-1, -1,  -2, -2,    -2,   -2, -2.0, -2]
+            calibrate_goal.times =            [10,    7,    6,    4,  0.5,  7,   10,  0.5,   5,   5,    4,    5,  1.5, 10,   5,   4]
+            calibrate_goal.motion_dirs =      ["-z", "-z", "x", "z", "-x", "z", "x", "x", "z", "z", "-z", "x", "-x", "z", "-x", "-z"]
+            calibrate_goal.is_linear_motion = [  1,    0,    1,   1,   1,   0,    0,    1,   1,   1,    0,    1,   1,   0,   1,    1]
+            calibrate_goal.forces =           [-1, -1 ,-1, -1, -1, -1, -1, -1, -1.0,   -1.0,  -1.0, -1.0,    -1.0,   -1.0, -1.0, -1.0]
 
             success = monitor_action_goal(experiment_server, calibrate_client, calibrate_goal, action_name = calibrate_action_name)
 

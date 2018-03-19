@@ -1,6 +1,6 @@
 action_name: admittance
 kinematic_chain_base_link: yumi_base_link
-loop_rate: 150
+loop_rate: 250
 left_arm:
   kdl_eef_frame: yumi_link_7_l
   gripping_frame: yumi_link_7_l
@@ -30,10 +30,10 @@ right_arm:
            0, 0, 0, 0, 0, 1.0]
 
 kdl_manager:
-  eps: 0.001
+  eps: 0.01
   max_tf_attempts: 10
   ikvel_solver: nso
-  nso_weight: 10
+  nso_weight: 40
 
 admittance:
   settling_time: 2.5
@@ -42,9 +42,9 @@ admittance:
     data: [100, 0, 0, 0, 0, 0,
            0, 100, 0, 0, 0, 0,
            0, 0, 100, 0, 0, 0,
-           0, 0, 0, 2.0, 0, 0,
-           0, 0, 0, 0, 2.0, 0,
-           0, 0, 0, 0, 0, 2.0]
+           0, 0, 0, 4.0, 0, 0,
+           0, 0, 0, 0, 4.0, 0,
+           0, 0, 0, 0, 0, 4.0]
 
   force_dead_zone: 0.75
   torque_dead_zone: 0.1
