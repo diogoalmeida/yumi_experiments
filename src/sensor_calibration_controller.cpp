@@ -288,9 +288,8 @@ namespace yumi_experiments
     kdl_manager_->getSensorPoint(case_arm_eef_, current_state, p_case_sensor);
 
     KDL::Frame temp;
-    temp = p_grip_probe;
-    temp.p.z(temp.p.z() + probe_tip_offset_); // temp is now the prob tip in the prob gripping frame
-    tf::transformKDLToEigen(p_case_sensor.Inverse()*temp, probe_tip_eig); // probe tip eig is the probe tip in the case sensor frame
+    temp.p.z(probe_tip_offset_); // probe tip in the probe gripping frame
+    tf::transformKDLToEigen(p_case_sensor.Inverse()*p_grip_probe*temp, probe_tip_eig); // probe tip eig is the probe tip in the case sensor frame
 
     Eigen::Matrix<double, 6, 1> wrench_probe_grip, wrench_case_sensor;
 
