@@ -1,0 +1,14 @@
+move:
+  action_name: /admittance_controller/admittance
+folding:
+  action_name: /folding_controller/fold
+approach:
+  action_name: /approach_controller/approach
+  approach_frame: l_gripping_point
+ft_reset_services: [/r_compensate_gravity/calibrate_bias, /l_compensate_gravity/calibrate_bias]
+right_arm:
+  pose: [0.433, -0.349, 0.156, 0.327, 0.662, 0.650, 0.179]
+  joint_state: [1.01461, -2.36249, -0.97254, 0.35262, 2.49838, -0.97181, -3.51083] # third joint swapped with 7th
+left_arm:
+  pose: [0.447, 0.178, 0.179, 0.681, 0.315, 0.165, 0.640]
+  joint_state: [-1.35061, -2.12945, 1.27969, 0.61195, 4.33682, -0.59895, -3.20706] # third joint swapped with 7th

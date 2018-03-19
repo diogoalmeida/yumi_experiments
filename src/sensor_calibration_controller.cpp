@@ -263,7 +263,7 @@ namespace yumi_experiments
     }
 
     twist_eig.block<3,1>(3,0) = wd_*rot_dir;
-    Eigen::Vector3d r = probe_eig.matrix().block<3,3>(0,0).transpose()*Eigen::Vector3d::UnitZ()*probe_tip_offset_;
+    Eigen::Vector3d r = -probe_eig.matrix().block<3,3>(0,0).transpose()*Eigen::Vector3d::UnitZ()*probe_tip_offset_;
     twist_eig.block<3,1>(0,0) = vd_*trans_dir + (wd_*rot_dir).cross(r) + K_force_*(fd*force_dir - wrench_probe_eig.block<3,1>(0,0)); // desired twist of the gripping point in the world frame
     KDL::Twist ret;
     // KDL::Frame p_tip = p_probe.Inverse();

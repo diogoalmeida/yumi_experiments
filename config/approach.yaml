@@ -15,7 +15,7 @@ approach_arm:
            0, 0, 0, 0, 0, 1.0]
 
 kdl_manager:
-  eps: 0.001
+  eps: 0.01
   max_tf_attempts: 10
   ikvel_solver: nso
-  nso_weight: 4
+  nso_weight: 40

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import rospy
 import sys
-from yumi_experiments.msg import RunFoldingAction, ApproachControllerAction, ApproachControllerGoal, AdmittanceControllerGoal, AdmittanceControllerAction, RunFoldingFeedback
+from yumi_experiments.msg import RunFoldingAction, ApproachControllerAction, ApproachControllerGoal, AdmittanceControllerGoal, AdmittanceControllerAction, RunFoldingFeedback, SensorCalibrationGoal, SensorCalibrationAction
 from std_msgs.msg import Bool
 from std_srvs.srv import Empty
 import actionlib
@@ -65,6 +65,7 @@ if __name__ == "__main__":
     rospy.init_node("initialize_calibration")
     move_action_name = rospy.get_param("~move/action_name", "/yumi/move")
     approach_action_name = rospy.get_param("~approach/action_name", "/yumi/approach")
+    calibrate_action_name = rospy.get_param("~calibrate/action_name", "/calibration_controller/sensor_calibration")
     approach_frame = rospy.get_param("~approach/approach_frame", "l_gripping_point")
 
     force_torque_reset_services = rospy.get_param("~ft_reset_services", [])
@@ -78,11 +79,14 @@ if __name__ == "__main__":
 
     move_client = actionlib.SimpleActionClient(move_action_name, AdmittanceControllerAction)
     approach_client = actionlib.SimpleActionClient(approach_action_name, ApproachControllerAction)
+    calibrate_client = actionlib.SimpleActionClient(calibrate_action_name, SensorCalibrationAction)
 
     rospy.loginfo("Waiting for move action server...")
     move_client.wait_for_server()
     rospy.loginfo("Waiting for approach action server...")
     approach_client.wait_for_server()
+    rospy.loginfo("Waiting for calibration action server...")
+    calibrate_client.wait_for_server()
     rospy.loginfo("Waiting for action request...")
     stop_msg = Bool()
     experiment_server = actionlib.SimpleActionServer("/calibration/initialize", RunFoldingAction)
@@ -124,6 +128,7 @@ if __name__ == "__main__":
             arms_move_goal.desired_left_pose.pose.orientation.w = left_pose[6]
 
             experiment_server.publish_feedback(feedback)
+
             success = monitor_action_goal(experiment_server, move_client, arms_move_goal, action_name = move_action_name, time_limit = 10.)
 
             if not success:  # Something went wrong
@@ -136,7 +141,7 @@ if __name__ == "__main__":
                 except rospy.ServiceException, e:
                     print "Service call failed: %s"%e
 
-            rospy.sleep(0.5)
+            rospy.sleep(1.5)
 
             feedback.current_action = "Approach control"
             experiment_server.publish_feedback(feedback)
@@ -146,6 +151,19 @@ if __name__ == "__main__":
             approach_move_goal.max_contact_force = 1.5
 
             success = monitor_action_goal(experiment_server, approach_client, approach_move_goal, action_name = approach_action_name)
+
+            if not success:
+                break
+
+            feedback.current_action = "Calibration controller"
+            experiment_server.publish_feedback(feedback)
+            calibrate_goal = SensorCalibrationGoal()
+            calibrate_goal.times =            [10,    7,    6,    4,      4,    5,  1.5, 10,   5,   4]
+            calibrate_goal.motion_dirs =      ["-z", "-z", "-x", "z",  "-z", "-x", "x", "z", "x", "-z"]
+            calibrate_goal.is_linear_motion = [  1,    0,    1,   1,     0,    1,   1,   0,   1,    1]
+            calibrate_goal.forces =           [-1, -1 ,-1, -1,  -2, -2,    -2,   -2, -2.0, -2]
+
+            success = monitor_action_goal(experiment_server, calibrate_client, calibrate_goal, action_name = calibrate_action_name)
 
             if not success:
                 break
