@@ -66,6 +66,8 @@ if __name__ == "__main__":
 
     rospy.init_node("initialize_folding")
     move_action_name = rospy.get_param("~move/action_name", "/yumi/move")
+    move_action_timeout = rospy.get_param("~move/timeout", 10)
+    calibrate_bias = rospy.get_param("~move/calibrate_bias", True)
     folding_action_name = rospy.get_param("~folding/action_name", "/yumi/folding")
     approach_action_name = rospy.get_param("~approach/action_name", "/yumi/approach")
     approach_frame = rospy.get_param("~approach/approach_frame", "l_gripping_point")
@@ -129,19 +131,20 @@ if __name__ == "__main__":
             arms_move_goal.desired_left_pose.pose.orientation.z = left_pose[5]
             arms_move_goal.desired_left_pose.pose.orientation.w = left_pose[6]
 
-            success = monitor_action_goal(experiment_server, move_client, arms_move_goal, action_name = move_action_name, time_limit = 10.)
+            success = monitor_action_goal(experiment_server, move_client, arms_move_goal, action_name = move_action_name, time_limit = move_action_timeout)
 
             if not success:  # Something went wrong
                 break
 
-            for service in force_torque_reset_services: # Zero ft sensors
-                try:
-                    approach_service = rospy.ServiceProxy(service, Empty)
-                    approach_service()
-                except rospy.ServiceException, e:
-                    print "Service call failed: %s"%e
+            if calibrate_bias:
+                for service in force_torque_reset_services: # Zero ft sensors
+                    try:
+                        approach_service = rospy.ServiceProxy(service, Empty)
+                        approach_service()
+                    except rospy.ServiceException, e:
+                        print "Service call failed: %s"%e
 
-            rospy.sleep(1.5)
+                    rospy.sleep(1.5)
             # stop_msg.data = False
             # stop_folding_pub.publish(stop_msg)
             approach_move_goal = ApproachControllerGoal()

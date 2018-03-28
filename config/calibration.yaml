@@ -6,7 +6,7 @@ probe_arm:
   gripping_frame: yumi_link_7_l
   has_ft_sensor: true
   sensor_frame: optodaq_l_sensor_link
-  sensor_topic: /yumi/optodaq_l_compensated
+  sensor_topic: /yumi/optodaq_l/ft_compensated
   sensor_calib:
     data: [1.0, 0, 0, 0, 0, 0,
            0, 1.0, 0, 0, 0, 0,
@@ -20,7 +20,7 @@ case_arm:
   gripping_frame: r_gripping_point
   has_ft_sensor: true
   sensor_frame: optodaq_r_sensor_link
-  sensor_topic: /yumi/optodaq_r_compensated
+  sensor_topic: /yumi/optodaq_r/ft_compensated
   sensor_calib:
     data: [1.0, 0, 0, 0, 0, 0,
            0, 1.0, 0, 0, 0, 0,

@@ -95,6 +95,12 @@ namespace yumi_experiments
       return false;
     }
 
+    if (!nh_.getParam("admittance/avoid_joint_limits", avoid_joint_limits_))
+    {
+      ROS_ERROR("Missing admittance/avoid_joint_limits parameter");
+      return false;
+    }
+
     if(!matrix_parser.parseMatrixData(K_p_, "admittance/K_p", nh_))
     {
       return false;
@@ -199,22 +205,25 @@ namespace yumi_experiments
         continue; // joint without position limits
       }
 
-      predicted_position = q(i) + desired_q_dot(i)*dt;
-
-      if (predicted_position < (q_min(i) + pos_offset_))
+      if (avoid_joint_limits_)
       {
-        triggered = true;
-        ROS_WARN("Joint %u of chain %s is close to a limit", i, eef.c_str());
-        double error = q_min(i) - predicted_position;
-        desired_q_dot(i) = -0.001/(error - 0.0001);
-      }
+        predicted_position = q(i) + desired_q_dot(i)*dt;
 
-      if (predicted_position > (q_max(i) - pos_offset_))
-      {
-        triggered = true;
-        ROS_WARN("Joint %u of chain %s is close to a limit", i, eef.c_str());
-        double error = q_max(i) - predicted_position;
-        desired_q_dot(i) = -0.001/(error + 0.0001);
+        if (predicted_position < (q_min(i) + pos_offset_))
+        {
+          triggered = true;
+          ROS_WARN("Joint %u of chain %s is close to a limit", i, eef.c_str());
+          double error = q_min(i) - predicted_position;
+          desired_q_dot(i) = -0.001/(error - 0.0001);
+        }
+
+        if (predicted_position > (q_max(i) - pos_offset_))
+        {
+          triggered = true;
+          ROS_WARN("Joint %u of chain %s is close to a limit", i, eef.c_str());
+          double error = q_max(i) - predicted_position;
+          desired_q_dot(i) = -0.001/(error + 0.0001);
+        }
       }
     }
 

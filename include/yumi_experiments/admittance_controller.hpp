@@ -99,7 +99,7 @@ namespace yumi_experiments
     std::vector<Vector6d> cart_vel_;
     Eigen::Matrix<double, 6, 6> B_, K_d_;
     Eigen::MatrixXd K_p_;
-    bool use_right_, use_left_;
+    bool use_right_, use_left_, avoid_joint_limits_;
     double force_dead_zone_, torque_dead_zone_, pos_offset_, max_lin_acc_, max_ang_acc_, max_lin_vel_, max_ang_vel_, linear_threshold_, angular_threshold_;
     generic_control_toolbox::WrenchManager wrench_manager_;
     generic_control_toolbox::MatrixParser matrix_parser_;

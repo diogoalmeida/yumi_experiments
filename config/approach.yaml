@@ -6,7 +6,7 @@ approach_arm:
   gripping_frame: l_gripping_point
   has_ft_sensor: true
   sensor_frame: optodaq_l_sensor_link
-  sensor_topic: /yumi/optodaq_l_compensated
+  sensor_topic: /yumi/optodaq_l/ft_compensated
   sensor_calib:
     data: [1.0, 0, 0, 0, 0, 0,
            0, 1.0, 0, 0, 0, 0,
