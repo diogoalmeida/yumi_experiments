@@ -21,7 +21,6 @@ namespace yumi_experiments
   {
     std::string base_frame;
     double settling_time, damping_ratio, frequency;
-    generic_control_toolbox::MatrixParser matrix_parser;
 
     if (!nh_.getParam("kinematic_chain_base_link", base_frame))
     {
@@ -101,7 +100,7 @@ namespace yumi_experiments
       return false;
     }
 
-    if(!matrix_parser.parseMatrixData(K_p_, "admittance/K_p", nh_))
+    if(!generic_control_toolbox::MatrixParser::parseMatrixData(K_p_, "admittance/K_p", nh_))
     {
       return false;
     }
@@ -507,7 +506,7 @@ namespace yumi_experiments
       acc.block<3, 1>(0, 0) = B_.block<3, 3>(0, 0).llt().solve(K_p_.block<3, 3>(0,0)*cartesian_error.block<3, 1>(0, 0) - K_d_.block<3, 3>(0, 0)*vel_eig.block<3, 1>(0, 0) - desired_pose.matrix().block<3, 3>(0, 0)*wrench.block<3, 1>(0, 0));
 
       (desired_pose_kdl.M*pose.M.Inverse()).GetQuaternion(quat_v[0], quat_v[1], quat_v[2], quat_w);
-      K_p_prime = 2*(quat_w*Eigen::Matrix3d::Identity() - matrix_parser_.computeSkewSymmetric(quat_v)).transpose()*K_p_.block<3,3>(3,3);
+      K_p_prime = 2*(quat_w*Eigen::Matrix3d::Identity() - generic_control_toolbox::MatrixParser::computeSkewSymmetric(quat_v)).transpose()*K_p_.block<3,3>(3,3);
       acc.block<3, 1>(3, 0) = B_.block<3, 3>(3, 3).llt().solve(K_p_prime*quat_v - K_d_.block<3, 3>(3, 3)*vel_eig.block<3, 1>(3, 0) - desired_pose.matrix().block<3, 3>(0, 0)*wrench.block<3, 1>(3, 0));
 
       return acc;

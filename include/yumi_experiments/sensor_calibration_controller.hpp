@@ -45,7 +45,6 @@ namespace yumi_experiments
     ros::NodeHandle nh_;
     std::shared_ptr<generic_control_toolbox::KDLManager> kdl_manager_;
     generic_control_toolbox::WrenchManager wrench_manager_;
-    generic_control_toolbox::MatrixParser matrix_parser_;
     std::string case_arm_eef_, probe_arm_eef_, case_sensor_frame_, probe_sensor_frame_;
     std::vector<double> times_, forces_;
     std::vector<char> motion_dirs_;

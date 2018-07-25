@@ -20,7 +20,6 @@ namespace yumi_experiments
   bool SensorCalibrationController::init()
   {
     std::string base_frame;
-    generic_control_toolbox::MatrixParser matrix_parser;
 
     if (!nh_.getParam("kinematic_chain_base_link", base_frame))
     {
