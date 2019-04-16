@@ -3,9 +3,10 @@
 
 namespace yumi_experiments
 {
-  ApproachRosController::ApproachRosController()
+  ApproachRosController::ApproachRosController() {}
+  std::shared_ptr<generic_control_toolbox::ControllerBase> ApproachRosController::initController(ros::NodeHandle& nh) const
   {
-    controller_ = std::shared_ptr<ApproachController>(new ApproachController("approach"));
+    return std::shared_ptr<generic_control_toolbox::ControllerBase>(new ApproachController("approach", nh));
   }
 }
 

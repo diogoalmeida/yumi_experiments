@@ -5,6 +5,8 @@ find_package(
   catkin REQUIRED COMPONENTS
   rospy
   actionlib
+  pluginlib
+  controller_interface
   geometry_msgs
   actionlib_msgs
   generic_control_toolbox
@@ -26,7 +28,7 @@ generate_messages(
 )
 
 catkin_package(
-  CATKIN_DEPENDS rospy actionlib actionlib_msgs folding_assembly_controller generic_control_toolbox geometry_msgs
+  CATKIN_DEPENDS rospy actionlib pluginlib controller_interface actionlib_msgs folding_assembly_controller generic_control_toolbox geometry_msgs
   INCLUDE_DIRS include
   LIBRARIES
 )

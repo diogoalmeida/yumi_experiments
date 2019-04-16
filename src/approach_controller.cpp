@@ -2,12 +2,12 @@
 
 namespace yumi_experiments
 {
-  ApproachController::ApproachController(const std::string action_name) : ControllerTemplate<ApproachControllerAction,
-                                                                          ApproachControllerGoal,
-                                                                          ApproachControllerFeedback,
-                                                                          ApproachControllerResult>(action_name)
+  ApproachController::ApproachController(const std::string action_name, ros::NodeHandle nh) : ControllerTemplate<ApproachControllerAction,
+                                                                                                                  ApproachControllerGoal,
+                                                                                                                  ApproachControllerFeedback,
+                                                                                                                  ApproachControllerResult>(action_name, nh), nh_(nh)
   {
-    nh_ = ros::NodeHandle("~");
+    ROS_INFO_STREAM("Approach Controller namespace: " << nh_.getNamespace());
 
     if (!init())
     {
@@ -28,11 +28,12 @@ namespace yumi_experiments
       return false;
     }
 
-    kdl_manager_ = std::make_shared<generic_control_toolbox::KDLManager>(base_frame);
+    kdl_manager_ = std::make_shared<generic_control_toolbox::KDLManager>(base_frame, nh_);
+    wrench_manager_ = std::make_shared<generic_control_toolbox::WrenchManager>(nh_);
 
     generic_control_toolbox::ArmInfo info;
 
-    if(!generic_control_toolbox::getArmInfo("approach_arm", info))
+    if(!generic_control_toolbox::getArmInfo("approach_arm", info, nh_))
     {
       return false;
     }
@@ -85,7 +86,7 @@ namespace yumi_experiments
     sensor_msgs::JointState ret = current_state;
 
     Eigen::Matrix<double, 6, 1> wrench;
-    wrench_manager_.wrenchAtGrippingPoint(approach_arm_eef_, wrench);
+    wrench_manager_->wrenchAtGrippingPoint(approach_arm_eef_, wrench);
 
     if (wrench.block<3,1>(0,0).norm() >= max_contact_force_)
     {

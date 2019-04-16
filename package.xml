@@ -2,7 +2,7 @@
 <package format="2">
   <name>yumi_experiments</name>
   <version>0.2.0</version>
-  <description>Contains scripts and launch filesm together with relevant controllers to initialize experiments with the yumi.</description>
+  <description>Contains scripts and launch files together with relevant controllers to initialize experiments with the yumi.</description>
   <maintainer email="diogoa@kth.se">diogo</maintainer>
   <license>MIT</license>
 
@@ -14,8 +14,10 @@
   <depend>actionlib_msgs</depend>
   <depend>generic_control_toolbox</depend>
   <depend>folding_assembly_controller</depend>
+  <depend>controller_interface</depend>
+  <depend>pluginlib</depend>
 
   <export>
-    <controller_interface plugin="${prefix}/yumi_experiments_plugins.xml"/>
+    <controller_interface plugin="${prefix}/plugins.xml"/>
   </export>
 </package>

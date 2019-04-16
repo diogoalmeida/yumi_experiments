@@ -11,6 +11,8 @@ namespace yumi_experiments
   {
   public:
     ApproachRosController();
+  protected:
+    std::shared_ptr<generic_control_toolbox::ControllerBase> initController(ros::NodeHandle& nh) const;
   };
 }
 
