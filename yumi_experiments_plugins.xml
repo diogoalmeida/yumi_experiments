@@ -1,0 +1,7 @@
+<library path="lib/libapproach_ros_controller">
+  <class name="yumi_experiments/ApproachRosController" type="yumi_experiments::ApproachRosController" base_class_type="controller_interface::ControllerBase">
+    <description>
+      Controller which moves an end-effector on a prescribed direction until a threshold force is measured.
+    </description>
+  </class>
+</library>

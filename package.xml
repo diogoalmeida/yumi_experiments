@@ -14,4 +14,8 @@
   <depend>actionlib_msgs</depend>
   <depend>generic_control_toolbox</depend>
   <depend>folding_assembly_controller</depend>
+
+  <export>
+    <controller_interface plugin="${prefix}/yumi_experiments_plugins.xml"/>
+  </export>
 </package>

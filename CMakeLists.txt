@@ -36,6 +36,10 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
+add_library(approach_ros_controller src/approach_ros_controller.cpp src/approach_controller.cpp)
+target_link_libraries(approach_ros_controller ${catkin_LIBRARIES})
+add_dependencies(approach_ros_controller ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)
+
 add_executable(approach_action_node src/approach_action_node.cpp src/approach_controller.cpp)
 target_link_libraries(approach_action_node ${catkin_LIBRARIES})
 add_dependencies(approach_action_node ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)
