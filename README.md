@@ -9,5 +9,4 @@ Supported experiments:
 
 Dependencies:
   * [The folding assembly package](https://github.com/diogoalmeida/sarafun_folding_assembly)
-  * Yumi interface (for now)
   * [Generic control toolbox](https://github.com/diogoalmeida/generic_control_toolbox)

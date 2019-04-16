@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import rospy
 import sys
-from yumi_interface.msg import MoveAction, MoveGoal
 from yumi_experiments.msg import RunFoldingAction, ApproachControllerAction, ApproachControllerGoal, AdmittanceControllerGoal, AdmittanceControllerAction
 from folding_assembly_controller.msg import FoldingControllerAction, FoldingControllerGoal
 from std_msgs.msg import Bool

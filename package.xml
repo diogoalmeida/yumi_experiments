@@ -12,7 +12,6 @@
   <depend>cmake_modules</depend>
   <depend>geometry_msgs</depend>
   <depend>actionlib_msgs</depend>
-  <depend>yumi_interface</depend>
   <depend>generic_control_toolbox</depend>
   <depend>folding_assembly_controller</depend>
 </package>
